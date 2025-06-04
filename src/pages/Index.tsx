@@ -16,7 +16,7 @@ const Index = () => {
             MeethaPitara Recipe Calculator & AI Flavour Engine
           </h1>
           <p className="text-gray-600 text-lg">
-            Professional recipe development tools for artisan ice cream makers
+            ML-powered recipe development tools with predictive analysis for artisan ice cream makers
           </p>
         </div>
 

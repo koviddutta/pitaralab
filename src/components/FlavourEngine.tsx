@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Brain, Sparkles, Upload, Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,8 @@ import ChemistryAnalysis from './flavour-engine/ChemistryAnalysis';
 import AIOptimization from './flavour-engine/AIOptimization';
 import { Ingredient, RecipeTargets } from './flavour-engine/types';
 import { calculateRecipeMetrics, checkTargets, generateOptimizationSuggestions } from './flavour-engine/utils';
+import AIInsights from './flavour-engine/AIInsights';
+import IngredientAnalyzer from './flavour-engine/IngredientAnalyzer';
 
 const FlavourEngine = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +42,25 @@ const FlavourEngine = () => {
   });
 
   const [isOptimizing, setIsOptimizing] = useState(false);
+
+  const addIngredientToRecipe = (ingredientName: string) => {
+    if (!recipe[ingredientName]) {
+      setRecipe(prev => ({
+        ...prev,
+        [ingredientName]: 50 // Default amount
+      }));
+      toast({
+        title: "Ingredient Added",
+        description: `${ingredientName} has been added to your recipe.`,
+      });
+    } else {
+      toast({
+        title: "Ingredient Already Added",
+        description: `${ingredientName} is already in your recipe.`,
+        variant: "destructive",
+      });
+    }
+  };
 
   const metrics = calculateRecipeMetrics(recipe, ingredients);
   const targetResults = checkTargets(metrics, targets);
@@ -136,9 +156,12 @@ const FlavourEngine = () => {
           </div>
           AI Flavour Engine
           <Sparkles className="h-5 w-5 text-purple-600 animate-pulse" />
+          <div className="ml-2 px-3 py-1 bg-gradient-to-r from-green-500 to-teal-500 text-white text-sm rounded-full">
+            ML Powered
+          </div>
         </CardTitle>
         <CardDescription className="text-lg">
-          Data-driven recipe optimization for ice cream and gelato development
+          Advanced machine learning for ice cream and gelato recipe optimization with predictive analysis
         </CardDescription>
         
         <div className="flex gap-3 mt-4">
@@ -169,7 +192,7 @@ const FlavourEngine = () => {
       </CardHeader>
 
       <CardContent className="p-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-4 gap-8">
           <RecipeInputs recipe={recipe} onUpdateRecipe={updateRecipe} />
           <ChemistryAnalysis 
             metrics={metrics} 
@@ -182,6 +205,13 @@ const FlavourEngine = () => {
             isOptimizing={isOptimizing}
             onAutoOptimize={handleAutoOptimize}
           />
+          <div className="space-y-6">
+            <AIInsights recipe={recipe} metrics={metrics} />
+            <IngredientAnalyzer 
+              availableIngredients={ingredients.map(ing => ing.name)}
+              onAddIngredient={addIngredientToRecipe}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
