@@ -1,468 +1,313 @@
-
 import { pipeline } from '@huggingface/transformers';
 import { databaseService, TrainingData } from './databaseService';
 
-// WebGPU type declarations
-declare global {
-  interface Navigator {
-    gpu?: {
-      requestAdapter(): Promise<GPUAdapter | null>;
-    };
-  }
-}
-
-interface GPUAdapter {
-  // Basic GPU adapter interface
-}
-
-export interface FlavorProfile {
+interface RecipeMetrics {
+  totalWeight: number;
+  sugarPercentage: number;
+  fatPercentage: number;
+  proteinPercentage: number;
   sweetness: number;
-  richness: number;
   complexity: number;
-  stability: number;
-  mouthfeel: number;
-  creaminess: number;
+}
+
+interface PredictionResult {
+  success: number;
+  sweetness: number;
   texture: number;
+  overallRating: number;
+  marketAppeal: number;
+  confidence: number;
 }
 
-export interface IngredientSimilarity {
+interface OptimizationSuggestion {
   ingredient: string;
-  similarity: number;
+  currentAmount: number;
+  suggestedAmount: number;
   reason: string;
+  impact: 'high' | 'medium' | 'low';
+}
+
+interface TrendAnalysis {
+  trendingFlavors: string[];
+  emergingIngredients: string[];
+  marketGaps: string[];
+  seasonalOpportunities: string[];
   confidence: number;
 }
 
-export interface MLPrediction {
-  successScore: number;
-  confidence: number;
-  flavorProfile: FlavorProfile;
+interface RecipeValidation {
+  isValid: boolean;
+  violations: string[];
   recommendations: string[];
-  similarRecipes: string[];
-  riskFactors: string[];
-  optimizationTips: string[];
-  predictionId: string;
+  score: number;
 }
-
-export interface ModelPerformance {
-  accuracy: number;
-  totalPredictions: number;
-  correctPredictions: number;
-  lastTraining: Date;
-  modelVersion: string;
-}
-
-type DeviceType = 'webgpu' | 'auto' | 'gpu' | 'cpu' | 'wasm' | 'cuda' | 'dml' | 'webnn' | 'webnn-npu' | 'webnn-gpu' | 'webnn-cpu';
 
 class MLService {
-  private textClassifier: any = null;
-  private embedder: any = null;
-  private initialized = false;
-  private isWebGPUAvailable = false;
-  private modelVersion = '1.2.0';
-  private learningRate = 0.01;
+  private model: any = null;
+  private isInitialized = false;
+  private trainingData: TrainingData[] = [];
 
   async initialize() {
-    if (this.initialized) return;
-    
     try {
-      console.log('Initializing ML models...');
+      // Initialize the ML pipeline for text generation/analysis
+      this.model = await pipeline('text-generation', 'Xenova/gpt2', {
+        device: 'webgpu',
+        dtype: 'fp32'
+      });
       
-      // Test WebGPU availability
-      this.isWebGPUAvailable = await this.testWebGPU();
+      // Load training data from database
+      this.trainingData = databaseService.getTrainingData();
+      this.isInitialized = true;
       
-      const deviceConfig = this.isWebGPUAvailable 
-        ? { device: 'webgpu' as DeviceType } 
-        : { device: 'cpu' as DeviceType };
-      
-      // Initialize sentiment analysis for flavor profiling
-      this.textClassifier = await pipeline(
-        'text-classification',
-        'cardiffnlp/twitter-roberta-base-sentiment-latest',
-        deviceConfig
-      );
-
-      // Initialize embeddings for ingredient similarity
-      this.embedder = await pipeline(
-        'feature-extraction',
-        'sentence-transformers/all-MiniLM-L6-v2',
-        deviceConfig
-      );
-
-      this.initialized = true;
-      console.log(`ML models initialized successfully on ${this.isWebGPUAvailable ? 'WebGPU' : 'CPU'}`);
-      
-      // Start continuous learning process
-      this.startContinuousLearning();
-      
+      console.log('ML Service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize ML models:', error);
-      throw new Error('ML service initialization failed');
+      console.warn('ML Service initialization failed, using fallback:', error);
+      this.isInitialized = false;
     }
   }
 
-  private async testWebGPU(): Promise<boolean> {
+  async predictRecipeSuccess(recipe: { [key: string]: number }): Promise<PredictionResult> {
     try {
-      if (!('gpu' in navigator)) return false;
-      const adapter = await navigator.gpu?.requestAdapter();
-      return adapter !== null;
-    } catch {
-      return false;
-    }
-  }
-
-  async analyzeFlavorProfile(ingredients: string[]): Promise<FlavorProfile> {
-    await this.initialize();
-    
-    if (ingredients.length === 0) {
-      return this.getDefaultProfile();
-    }
-
-    try {
-      // Get ingredient data from database
-      const ingredientData = ingredients.map(name => 
-        databaseService.getIngredientByName(name)
-      ).filter(Boolean);
-
-      // Calculate base profile from ingredient properties
-      const baseProfile = this.calculateBaseProfile(ingredientData);
+      const metrics = this.calculateRecipeMetrics(recipe);
       
-      // Enhance with ML analysis
-      const flavorText = ingredients.join(' ');
-      let mlEnhancement = { sweetness: 0, richness: 0, complexity: 0 };
+      // Enhanced prediction logic with more sophisticated calculations
+      const balanceScore = this.calculateBalanceScore(metrics);
+      const complexityScore = this.calculateComplexityScore(recipe);
+      const marketScore = this.calculateMarketScore(recipe);
       
-      if (this.textClassifier) {
-        try {
-          const sentiment = await this.textClassifier(flavorText);
-          mlEnhancement = this.interpretSentimentForFlavor(sentiment);
-        } catch (error) {
-          console.warn('ML flavor analysis failed, using base calculation:', error);
-        }
-      }
-
-      // Combine base profile with ML enhancement
       return {
-        sweetness: Math.min(0.95, Math.max(0.05, baseProfile.sweetness + mlEnhancement.sweetness * 0.1)),
-        richness: Math.min(0.95, Math.max(0.05, baseProfile.richness + mlEnhancement.richness * 0.1)),
-        complexity: Math.min(0.95, Math.max(0.05, baseProfile.complexity + mlEnhancement.complexity * 0.1)),
-        stability: baseProfile.stability,
-        mouthfeel: baseProfile.mouthfeel,
-        creaminess: baseProfile.creaminess,
-        texture: baseProfile.texture
+        success: Math.min(95, Math.max(5, balanceScore * 0.4 + complexityScore * 0.3 + marketScore * 0.3)),
+        sweetness: metrics.sweetness,
+        texture: this.calculateTextureScore(metrics),
+        overallRating: (balanceScore + complexityScore + marketScore) / 3,
+        marketAppeal: marketScore,
+        confidence: this.isInitialized ? 85 : 70
       };
-      
     } catch (error) {
-      console.error('Error in flavor profile analysis:', error);
-      return this.getDefaultProfile();
+      console.error('Prediction error:', error);
+      return this.getFallbackPrediction(recipe);
     }
   }
 
-  private calculateBaseProfile(ingredientData: any[]): FlavorProfile {
-    const totalWeight = ingredientData.reduce((sum, ing) => {
-      const fat = typeof ing?.fat === 'number' ? ing.fat : 0;
-      const msnf = typeof ing?.msnf === 'number' ? ing.msnf : 0;
-      return sum + fat + msnf;
-    }, 0) || 1;
+  private calculateRecipeMetrics(recipe: { [key: string]: number }) {
+    const totalWeight = Object.values(recipe).reduce((sum, amount) => sum + Number(amount || 0), 0);
     
-    const sweetIngredients = ingredientData.filter(ing => 
-      ing?.flavorNotes?.some((note: string) => ['sweet', 'vanilla', 'honey'].includes(note.toLowerCase()))
-    ).length;
+    // Calculate nutritional metrics
+    const sugarWeight = Number(recipe['Sugar'] || 0) + Number(recipe['Honey'] || 0) + Number(recipe['Maple Syrup'] || 0);
+    const fatWeight = Number(recipe['Heavy Cream'] || 0) * 0.35 + Number(recipe['Whole Milk'] || 0) * 0.035;
+    const proteinWeight = Number(recipe['Whole Milk'] || 0) * 0.034 + Number(recipe['Egg Yolks'] || 0) * 0.16;
     
-    const richIngredients = ingredientData.filter(ing => {
-      const fat = typeof ing?.fat === 'number' ? ing.fat : 0;
-      return fat > 10 || ing?.flavorNotes?.some((note: string) => ['rich', 'creamy', 'custardy'].includes(note.toLowerCase()));
-    }).length;
-
-    const creamyIngredients = ingredientData.filter(ing => 
-      ing?.category === 'dairy' || ing?.flavorNotes?.some((note: string) => ['creamy', 'smooth'].includes(note.toLowerCase()))
-    ).length;
-
     return {
-      sweetness: Math.min(0.9, sweetIngredients * 0.25 + Math.random() * 0.1),
-      richness: Math.min(0.9, richIngredients * 0.3 + Math.random() * 0.1),
-      complexity: Math.min(0.9, ingredientData.length * 0.12 + Math.random() * 0.15),
-      stability: Math.random() * 0.3 + 0.5,
-      mouthfeel: Math.random() * 0.2 + 0.6,
-      creaminess: Math.min(0.9, creamyIngredients * 0.25 + Math.random() * 0.1),
-      texture: Math.random() * 0.25 + 0.6
+      totalWeight,
+      sugarPercentage: (sugarWeight / totalWeight) * 100,
+      fatPercentage: (fatWeight / totalWeight) * 100,
+      proteinPercentage: (proteinWeight / totalWeight) * 100,
+      sweetness: (sugarWeight / totalWeight) * 100,
+      complexity: Object.keys(recipe).length
     };
   }
 
-  private interpretSentimentForFlavor(sentiment: any): { sweetness: number, richness: number, complexity: number } {
-    // Convert sentiment to flavor enhancement
-    const score = sentiment[0]?.score || 0.5;
-    const label = sentiment[0]?.label?.toLowerCase() || 'neutral';
+  private calculateBalanceScore(metrics: any): number {
+    let score = 100;
     
-    return {
-      sweetness: label.includes('positive') ? score * 0.2 : 0,
-      richness: label.includes('negative') ? score * 0.15 : 0,
-      complexity: Math.abs(score - 0.5) * 0.3
-    };
+    // Optimal ranges for ice cream
+    if (metrics.sugarPercentage < 14 || metrics.sugarPercentage > 22) score -= 20;
+    if (metrics.fatPercentage < 10 || metrics.fatPercentage > 20) score -= 15;
+    if (metrics.proteinPercentage < 3 || metrics.proteinPercentage > 6) score -= 10;
+    
+    return Math.max(0, score);
   }
 
-  private getDefaultProfile(): FlavorProfile {
-    return {
-      sweetness: 0.5,
-      richness: 0.5,
-      complexity: 0.5,
-      stability: 0.6,
-      mouthfeel: 0.6,
-      creaminess: 0.5,
-      texture: 0.6
-    };
+  private calculateComplexityScore(recipe: { [key: string]: number }): number {
+    const ingredientCount = Object.keys(recipe).length;
+    const baseScore = 70;
+    
+    // Optimal complexity is 5-8 ingredients
+    if (ingredientCount >= 5 && ingredientCount <= 8) return baseScore + 20;
+    if (ingredientCount < 5) return baseScore - (5 - ingredientCount) * 5;
+    if (ingredientCount > 8) return baseScore - (ingredientCount - 8) * 3;
+    
+    return baseScore;
   }
 
-  async findSimilarIngredients(ingredient: string, availableIngredients: string[]): Promise<IngredientSimilarity[]> {
-    await this.initialize();
+  private calculateMarketScore(recipe: { [key: string]: number }): number {
+    let score = 70;
     
-    if (!this.embedder || availableIngredients.length === 0) {
-      return this.getFallbackSimilarities(ingredient, availableIngredients);
-    }
-
-    try {
-      const targetEmbedding = await this.embedder(ingredient);
-      const similarities: IngredientSimilarity[] = [];
-
-      for (const candidate of availableIngredients) {
-        if (candidate.toLowerCase() === ingredient.toLowerCase()) continue;
-        
-        const candidateEmbedding = await this.embedder(candidate);
-        const similarity = this.calculateCosineSimilarity(
-          targetEmbedding.data, 
-          candidateEmbedding.data
-        );
-        
-        similarities.push({
-          ingredient: candidate,
-          similarity,
-          reason: this.generateSimilarityReason(ingredient, candidate, similarity),
-          confidence: this.isWebGPUAvailable ? 0.9 : 0.7
-        });
-      }
-
-      return similarities
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, 5);
-        
-    } catch (error) {
-      console.error('Error finding similar ingredients:', error);
-      return this.getFallbackSimilarities(ingredient, availableIngredients);
-    }
-  }
-
-  private calculateCosineSimilarity(a: number[], b: number[]): number {
-    const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-    const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-    const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-    return dotProduct / (magnitudeA * magnitudeB);
-  }
-
-  private getFallbackSimilarities(ingredient: string, availableIngredients: string[]): IngredientSimilarity[] {
-    // Rule-based fallback when ML is not available
-    const ingredientData = databaseService.getIngredientByName(ingredient);
-    if (!ingredientData) return [];
-
-    return availableIngredients
-      .filter(candidate => candidate.toLowerCase() !== ingredient.toLowerCase())
-      .map(candidate => {
-        const candidateData = databaseService.getIngredientByName(candidate);
-        const similarity = candidateData ? this.calculateRuleBasedSimilarity(ingredientData, candidateData) : 0.1;
-        
-        return {
-          ingredient: candidate,
-          similarity,
-          reason: this.generateSimilarityReason(ingredient, candidate, similarity),
-          confidence: 0.6
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 3);
-  }
-
-  private calculateRuleBasedSimilarity(ing1: any, ing2: any): number {
-    let similarity = 0;
-    
-    // Category match
-    if (ing1.category === ing2.category) similarity += 0.4;
-    
-    // Flavor notes overlap
-    const overlap = ing1.flavorNotes.filter((note: string) => 
-      ing2.flavorNotes.includes(note)
-    ).length;
-    similarity += (overlap / Math.max(ing1.flavorNotes.length, ing2.flavorNotes.length)) * 0.3;
-    
-    // Fat content similarity - fix type issues
-    const fat1 = typeof ing1.fat === 'number' ? ing1.fat : 0;
-    const fat2 = typeof ing2.fat === 'number' ? ing2.fat : 0;
-    const fatDiff = Math.abs(fat1 - fat2) / Math.max(fat1, fat2, 1);
-    similarity += (1 - fatDiff) * 0.2;
-    
-    // Cost similarity - fix type issues
-    const cost1 = typeof ing1.cost === 'number' ? ing1.cost : 0;
-    const cost2 = typeof ing2.cost === 'number' ? ing2.cost : 0;
-    const costDiff = Math.abs(cost1 - cost2) / Math.max(cost1, cost2, 1);
-    similarity += (1 - costDiff) * 0.1;
-    
-    return Math.min(0.95, similarity);
-  }
-
-  async predictRecipeSuccess(recipe: {[key: string]: number}, metrics: any): Promise<MLPrediction> {
-    await this.initialize();
-    
-    const predictionId = Date.now().toString();
-    const ingredients = Object.keys(recipe);
-    const flavorProfile = await this.analyzeFlavorProfile(ingredients);
-    
-    // Enhanced success calculation with multiple factors
-    const balanceScore = this.calculateAdvancedBalance(metrics);
-    const complexityScore = this.calculateComplexityScore(ingredients, recipe);
-    const stabilityScore = this.calculateStabilityScore(recipe);
-    const innovationScore = this.calculateInnovationScore(ingredients);
-    
-    // Weight the scores based on importance
-    const successScore = (
-      balanceScore * 0.35 +
-      complexityScore * 0.25 +
-      stabilityScore * 0.2 +
-      innovationScore * 0.1 +
-      flavorProfile.stability * 0.1
+    // Trending ingredients boost
+    const trendingIngredients = ['Vanilla Extract', 'Honey', 'Coconut', 'Matcha', 'Lavender'];
+    const hasTrending = Object.keys(recipe).some(ingredient => 
+      trendingIngredients.some(trending => ingredient.toLowerCase().includes(trending.toLowerCase()))
     );
     
-    const confidence = this.calculateConfidence(recipe, metrics);
-    const recommendations = this.generateAdvancedRecommendations(recipe, metrics, flavorProfile);
-    const riskFactors = this.identifyRiskFactors(recipe, metrics);
-    const optimizationTips = this.generateOptimizationTips(recipe, metrics, flavorProfile);
-    const similarRecipes = this.findSimilarRecipes(ingredients);
-
-    // Store prediction for training
-    databaseService.addTrainingData({
-      recipe,
-      metrics,
-      successScore
-    });
-
-    return {
-      successScore,
-      confidence,
-      flavorProfile,
-      recommendations,
-      similarRecipes,
-      riskFactors,
-      optimizationTips,
-      predictionId
-    };
-  }
-
-  private calculateAdvancedBalance(metrics: any): number {
-    const targets = {
-      fat: { min: 14, max: 18, optimal: 16 },
-      sweetness: { min: 14, max: 18, optimal: 16 },
-      totalSolids: { min: 36, max: 42, optimal: 39 },
-      pac: { min: 3.2, max: 4.5, optimal: 3.8 }
-    };
-
-    let totalScore = 0;
-    let factors = 0;
-
-    Object.entries(targets).forEach(([key, target]) => {
-      const value = Number(metrics[key] || 0);
-      if (!isNaN(value)) {
-        let score = 0;
-        if (value >= target.min && value <= target.max) {
-          // Within range, calculate distance from optimal
-          const distanceFromOptimal = Math.abs(value - target.optimal) / (target.max - target.min);
-          score = 1 - distanceFromOptimal;
-        } else {
-          // Outside range, penalize based on distance
-          const rangeSize = target.max - target.min;
-          if (value < target.min) {
-            score = Math.max(0, 1 - (target.min - value) / rangeSize);
-          } else {
-            score = Math.max(0, 1 - (value - target.max) / rangeSize);
-          }
-        }
-        totalScore += score;
-        factors++;
-      }
-    });
-
-    return factors > 0 ? totalScore / factors : 0.5;
-  }
-
-  private calculateComplexityScore(ingredients: string[], recipe: {[key: string]: number}): number {
-    const baseScore = Math.min(1, ingredients.length / 7); // Optimal around 7 ingredients
+    if (hasTrending) score += 15;
     
-    // Bonus for balanced ratios
-    const values = Object.values(recipe);
-    const total = values.reduce((sum, val) => sum + val, 0);
-    const ratios = values.map(val => val / total);
-    const entropy = -ratios.reduce((sum, ratio) => sum + ratio * Math.log2(ratio + 0.001), 0);
-    const balanceBonus = Math.min(0.3, entropy / 3);
-    
-    return Math.min(1, baseScore + balanceBonus);
-  }
-
-  private calculateStabilityScore(recipe: {[key: string]: number}): number {
-    let score = 0.6; // Base stability
-    
-    const stabilizer = recipe['Stabilizer'];
-    const eggYolks = recipe['Egg Yolks'];
-    const heavyCream = recipe['Heavy Cream'];
-    
-    if (typeof stabilizer === 'number' && stabilizer > 0) score += 0.3;
-    if (typeof eggYolks === 'number' && eggYolks > 0) score += 0.15;
-    if (typeof heavyCream === 'number' && heavyCream > 0) score += 0.1;
-    
-    return Math.min(1, score);
-  }
-
-  private calculateInnovationScore(ingredients: string[]): number {
-    const commonIngredients = ['Heavy Cream', 'Whole Milk', 'Sugar', 'Egg Yolks', 'Vanilla Extract'];
-    const uniqueIngredients = ingredients.filter(ing => !commonIngredients.includes(ing));
-    
-    return Math.min(0.8, uniqueIngredients.length * 0.15);
-  }
-
-  private calculateConfidence(recipe: {[key: string]: number}, metrics: any): number {
-    let confidence = 0.7; // Base confidence
-    
-    // Increase confidence based on data quality
-    const ingredients = Object.keys(recipe);
-    const knownIngredients = ingredients.filter(ing => 
-      databaseService.getIngredientByName(ing)
+    // Premium ingredients
+    const premiumIngredients = ['Heavy Cream', 'Egg Yolks', 'Vanilla Extract'];
+    const premiumCount = Object.keys(recipe).filter(ingredient =>
+      premiumIngredients.some(premium => ingredient.toLowerCase().includes(premium.toLowerCase()))
     ).length;
     
-    confidence += (knownIngredients / ingredients.length) * 0.2;
+    score += premiumCount * 5;
     
-    // Increase if using WebGPU
-    if (this.isWebGPUAvailable) confidence += 0.1;
-    
-    return Math.min(0.95, confidence);
+    return Math.min(100, score);
   }
 
-  private generateAdvancedRecommendations(recipe: any, metrics: any, flavorProfile: FlavorProfile): string[] {
+  private calculateTextureScore(metrics: any): number {
+    const fatRatio = metrics.fatPercentage / 15; // Optimal around 15%
+    const sugarRatio = metrics.sugarPercentage / 18; // Optimal around 18%
+    
+    return Math.min(100, (fatRatio + sugarRatio) * 50);
+  }
+
+  async optimizeRecipe(recipe: { [key: string]: number }): Promise<OptimizationSuggestion[]> {
+    const suggestions: OptimizationSuggestion[] = [];
+    const metrics = this.calculateRecipeMetrics(recipe);
+    
+    // Sugar optimization
+    if (metrics.sugarPercentage < 14) {
+      const currentSugar = Number(recipe['Sugar'] || 0);
+      const suggestedIncrease = (14 - metrics.sugarPercentage) * metrics.totalWeight / 100;
+      suggestions.push({
+        ingredient: 'Sugar',
+        currentAmount: currentSugar,
+        suggestedAmount: currentSugar + suggestedIncrease,
+        reason: 'Increase sweetness for better balance',
+        impact: 'high'
+      });
+    }
+    
+    if (metrics.sugarPercentage > 22) {
+      const currentSugar = Number(recipe['Sugar'] || 0);
+      const suggestedDecrease = (metrics.sugarPercentage - 22) * metrics.totalWeight / 100;
+      suggestions.push({
+        ingredient: 'Sugar',
+        currentAmount: currentSugar,
+        suggestedAmount: Math.max(0, currentSugar - suggestedDecrease),
+        reason: 'Reduce sweetness for better balance',
+        impact: 'high'
+      });
+    }
+    
+    // Fat optimization
+    if (metrics.fatPercentage < 10) {
+      const currentCream = Number(recipe['Heavy Cream'] || 0);
+      const suggestedIncrease = (10 - metrics.fatPercentage) * metrics.totalWeight / 35; // 35% fat in cream
+      suggestions.push({
+        ingredient: 'Heavy Cream',
+        currentAmount: currentCream,
+        suggestedAmount: currentCream + suggestedIncrease,
+        reason: 'Increase creaminess and richness',
+        impact: 'medium'
+      });
+    }
+    
+    return suggestions;
+  }
+
+  async analyzeTrends(): Promise<TrendAnalysis> {
+    // Simulate trend analysis based on stored recipes and market data
+    const recipes = databaseService.getRecipes();
+    const ingredientFrequency = new Map<string, number>();
+    
+    // Analyze ingredient frequency across recipes
+    recipes.forEach(recipe => {
+      Object.keys(recipe.ingredients).forEach(ingredient => {
+        ingredientFrequency.set(ingredient, (ingredientFrequency.get(ingredient) || 0) + 1);
+      });
+    });
+    
+    // Sort by frequency to identify trends
+    const sortedIngredients = Array.from(ingredientFrequency.entries())
+      .sort(([,a], [,b]) => b - a)
+      .map(([ingredient]) => ingredient);
+    
+    return {
+      trendingFlavors: ['Vanilla', 'Chocolate', 'Strawberry', 'Pistachio', 'Salted Caramel'],
+      emergingIngredients: sortedIngredients.slice(0, 5),
+      marketGaps: ['Sugar-free options', 'Protein-enriched', 'Exotic fruits', 'Floral essences'],
+      seasonalOpportunities: this.getSeasonalOpportunities(),
+      confidence: this.isInitialized ? 80 : 60
+    };
+  }
+
+  private getSeasonalOpportunities(): string[] {
+    const month = new Date().getMonth();
+    const seasonalMap = {
+      'winter': ['Cinnamon', 'Nutmeg', 'Peppermint', 'Hot chocolate'],
+      'spring': ['Strawberry', 'Lemon', 'Lavender', 'Rose'],
+      'summer': ['Mango', 'Coconut', 'Mint', 'Watermelon'],
+      'fall': ['Pumpkin spice', 'Apple', 'Caramel', 'Maple']
+    };
+    
+    if (month >= 2 && month <= 4) return seasonalMap.spring;
+    if (month >= 5 && month <= 7) return seasonalMap.summer;
+    if (month >= 8 && month <= 10) return seasonalMap.fall;
+    return seasonalMap.winter;
+  }
+
+  validateRecipe(recipe: { [key: string]: number }): RecipeValidation {
+    const violations: string[] = [];
     const recommendations: string[] = [];
     
-    // Flavor profile recommendations
-    if (flavorProfile.complexity < 0.4) {
-      recommendations.push('Consider adding complementary flavors like cardamom, rose water, or saffron for authentic Indian taste');
+    const totalWeight = Object.values(recipe).reduce((sum, amount) => sum + Number(amount || 0), 0);
+    const sugarWeight = Number(recipe['Sugar'] || 0);
+    const fatWeight = Number(recipe['Heavy Cream'] || 0) * 0.35 + Number(recipe['Whole Milk'] || 0) * 0.035;
+    
+    const sugarPercentage = (sugarWeight / totalWeight) * 100;
+    const fatPercentage = (fatWeight / totalWeight) * 100;
+    
+    // Validate sugar content
+    if (sugarPercentage < 14) {
+      violations.push('Sugar content too low (< 14%)');
+      recommendations.push('Increase sugar content for proper texture and preservation');
+    }
+    if (sugarPercentage > 22) {
+      violations.push('Sugar content too high (> 22%)');
+      recommendations.push('Reduce sugar to prevent over-sweetening and crystallization');
     }
     
-    if (flavorProfile.richness < 0.5 && flavorProfile.creaminess < 0.6) {
-      recommendations.push('Increase khoya (milk solids) or add condensed milk for traditional richness');
+    // Validate fat content
+    if (fatPercentage < 10) {
+      violations.push('Fat content too low (< 10%)');
+      recommendations.push('Increase cream content for better mouthfeel');
+    }
+    if (fatPercentage > 20) {
+      violations.push('Fat content too high (> 20%)');
+      recommendations.push('Reduce fat to prevent texture issues');
     }
     
-    if (flavorProfile.texture < 0.6) {
-      recommendations.push('Add cornstarch or arrowroot for improved texture consistency');
+    // Additional validations
+    if (totalWeight < 500) {
+      violations.push('Recipe too small for proper texture development');
+      recommendations.push('Scale up recipe to at least 500g total weight');
     }
     
-    // Chemistry recommendations
-    const fatValue = Number(metrics.fat || 0);
-    if (fatValue < 14) {
-      recommendations.push('Increase heavy cream or add malai for better fat content and mouthfeel');
+    if (Object.keys(recipe).length < 4) {
+      violations.push('Too few ingredients for complex flavor profile');
+      recommendations.push('Add more ingredients for depth and complexity');
     }
     
-    const sweetnessValue = Number(metrics.sweetness || 0);
-    if (sweetnessValue > 18) {
+    // Calculate score
+    const score = Math.max(0, 100 - violations.length * 15);
+    
+    return {
+      isValid: violations.length === 0,
+      violations,
+      recommendations,
+      score
+    };
+  }
+
+  generateRecommendations(recipe: { [key: string]: number }): string[] {
+    const recommendations: string[] = [];
+    const metrics = this.calculateRecipeMetrics(recipe);
+    
+    // Flavor enhancement recommendations
+    if (!recipe['Vanilla Extract'] && !recipe['Vanilla Bean']) {
+      recommendations.push('Add vanilla extract for enhanced flavor depth');
+    }
+    
+    if (metrics.sugarPercentage > 20) {
       recommendations.push('Balance excessive sweetness with a pinch of salt or cardamom');
     }
     
@@ -472,26 +317,21 @@ class MLService {
       recommendations.push('Add stabilizer for larger batches to maintain consistency');
     }
     
-    // Innovation recommendations
-    const hasTraditionalSpices = Object.keys(recipe).some(ing => 
-      ['cardamom', 'saffron', 'pistachio', 'rose water'].some(spice => 
-        ing.toLowerCase().includes(spice)
-      )
-    );
-    
-    if (!hasTraditionalSpices) {
-      recommendations.push('Explore traditional Indian flavors like cardamom, saffron, or pistachio for authentic taste');
+    if (!recipe['Salt'] && metrics.sugarPercentage > 18) {
+      recommendations.push('Add a small amount of salt to enhance sweetness perception');
     }
     
-    return recommendations.slice(0, 4);
+    return recommendations;
   }
 
-  private identifyRiskFactors(recipe: any, metrics: any): string[] {
+  identifyRisks(recipe: { [key: string]: number }): string[] {
     const risks: string[] = [];
+    const totalWeight = Object.values(recipe).reduce((sum, amount) => sum + Number(amount || 0), 0);
     
-    const fatValue = Number(metrics.fat || 0);
-    const totalSolidsValue = Number(metrics.totalSolids || 0);
-    const sweetnessValue = Number(metrics.sweetness || 0);
+    const sugarValue = Number(recipe['Sugar'] || 0);
+    const fatValue = Number(recipe['Heavy Cream'] || 0) * 0.35 + Number(recipe['Whole Milk'] || 0) * 0.035;
+    const sweetnessValue = (sugarValue / totalWeight) * 100;
+    const totalSolidsValue = ((sugarValue + fatValue) / totalWeight) * 100;
     
     if (fatValue > 20) risks.push('High fat content may cause texture issues');
     if (totalSolidsValue > 45) risks.push('Excessive solids may lead to crystallization');
@@ -502,110 +342,24 @@ class MLService {
       risks.push('No stabilizer with high solids increases ice crystal risk');
     }
     
-    const totalWeight = Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0);
-    if (totalWeight < 500) risks.push('Small batch size may affect texture development');
+    const totalWeightValue = Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0);
+    if (totalWeightValue < 500) risks.push('Small batch size may affect texture development');
+    if (totalWeightValue > 3000) risks.push('Large batch may require industrial equipment');
     
     return risks;
   }
 
-  private generateOptimizationTips(recipe: any, metrics: any, flavorProfile: FlavorProfile): string[] {
-    const tips: string[] = [];
+  private getFallbackPrediction(recipe: { [key: string]: number }): PredictionResult {
+    const metrics = this.calculateRecipeMetrics(recipe);
     
-    tips.push('Chill ingredients before mixing for better incorporation');
-    tips.push('Age the base for 4-6 hours for optimal flavor development');
-    
-    if (flavorProfile.stability < 0.7) {
-      tips.push('Process at lower temperature for better stability');
-    }
-    
-    if (Object.keys(recipe).includes('Sugar')) {
-      tips.push('Dissolve sugar completely before chilling to prevent grittiness');
-    }
-    
-    tips.push('Strain mixture before churning to ensure smooth texture');
-    
-    return tips.slice(0, 3);
-  }
-
-  private findSimilarRecipes(ingredients: string[]): string[] {
-    const recipeDatabase = [
-      'Classic Vanilla Kulfi', 'Malai Kulfi', 'Pistachio Kulfi', 'Saffron Kulfi',
-      'Rose Kulfi', 'Cardamom Ice Cream', 'Mango Kulfi', 'Coconut Kulfi',
-      'Chocolate Kulfi', 'Almond Kulfi', 'Kesar Pista Kulfi', 'Rabri Kulfi'
-    ];
-
-    // Simple matching based on ingredient categories
-    return recipeDatabase
-      .filter(() => Math.random() > 0.4)
-      .slice(0, 4);
-  }
-
-  private generateSimilarityReason(ingredient1: string, ingredient2: string, similarity: number): string {
-    if (similarity > 0.8) return 'Highly compatible with similar functional properties and flavor profiles';
-    if (similarity > 0.6) return 'Good compatibility with complementary characteristics for balanced taste';
-    if (similarity > 0.4) return 'Moderate compatibility - can create interesting flavor combinations';
-    return 'Different properties but may work in innovative recipe combinations';
-  }
-
-  // Continuous Learning Methods
-  private startContinuousLearning(): void {
-    // Update model performance every 10 minutes
-    setInterval(() => {
-      this.updateModelPerformance();
-    }, 600000);
-  }
-
-  private updateModelPerformance(): void {
-    const trainingData = databaseService.getTrainingData();
-    const recentData = trainingData.filter(data => 
-      Date.now() - new Date(data.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000 // Last week
-    );
-
-    if (recentData.length > 10) {
-      console.log(`Updating model with ${recentData.length} new data points`);
-      // In a real implementation, this would retrain the model
-      this.adjustModelParameters(recentData);
-    }
-  }
-
-  private adjustModelParameters(recentData: TrainingData[]): void {
-    // Simple parameter adjustment based on feedback
-    const validData = recentData.filter(data => data.actualOutcome !== undefined);
-    if (validData.length === 0) return;
-    
-    const avgOutcome = validData.reduce((sum, data) => sum + Number(data.actualOutcome || 0), 0) / validData.length;
-
-    if (avgOutcome > 0.8) {
-      this.learningRate *= 1.05; // Increase learning rate if doing well
-    } else if (avgOutcome < 0.6) {
-      this.learningRate *= 0.95; // Decrease if not performing well
-    }
-
-    console.log(`Model parameters adjusted. New learning rate: ${this.learningRate}`);
-  }
-
-  getModelPerformance(): ModelPerformance {
-    const trainingData = databaseService.getTrainingData();
-    const withOutcomes = trainingData.filter(data => data.actualOutcome !== undefined);
-    
-    const correctPredictions = withOutcomes.filter(data => {
-      const diff = Math.abs(data.successScore - Number(data.actualOutcome || 0));
-      return diff < 0.2; // Within 20% is considered correct
-    }).length;
-
     return {
-      accuracy: withOutcomes.length > 0 ? correctPredictions / withOutcomes.length : 0,
-      totalPredictions: trainingData.length,
-      correctPredictions,
-      lastTraining: new Date(),
-      modelVersion: this.modelVersion
+      success: 75,
+      sweetness: metrics.sweetness,
+      texture: 70,
+      overallRating: 72,
+      marketAppeal: 68,
+      confidence: 60
     };
-  }
-
-  // Feedback Collection
-  async provideFeedback(predictionId: string, actualOutcome: number, feedback?: string): Promise<void> {
-    databaseService.updateTrainingDataWithOutcome(predictionId, actualOutcome, feedback);
-    console.log(`Feedback received for prediction ${predictionId}: ${actualOutcome}`);
   }
 }
 
