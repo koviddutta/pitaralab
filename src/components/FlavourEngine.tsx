@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { Brain, Sparkles, Upload, Download } from 'lucide-react';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Brain, Sparkles, Upload, Download, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import RecipeInputs from './flavour-engine/RecipeInputs';
 import ChemistryAnalysis from './flavour-engine/ChemistryAnalysis';
@@ -10,21 +12,14 @@ import { Ingredient, RecipeTargets } from './flavour-engine/types';
 import { calculateRecipeMetrics, checkTargets, generateOptimizationSuggestions } from './flavour-engine/utils';
 import AIInsights from './flavour-engine/AIInsights';
 import IngredientAnalyzer from './flavour-engine/IngredientAnalyzer';
+import DatabaseManager from './DatabaseManager';
+import { databaseService } from '@/services/databaseService';
 
 const FlavourEngine = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  const [ingredients] = useState<Ingredient[]>([
-    { name: 'Heavy Cream', pac: 2.8, pod: 0.2, afp: 0.1, fat: 35, msnf: 5.5, cost: 4.5, confidence: 'high' },
-    { name: 'Whole Milk', pac: 2.7, pod: 0.3, afp: 0.05, fat: 3.5, msnf: 8.5, cost: 2.2, confidence: 'high' },
-    { name: 'Sugar', pac: 0, pod: 0, afp: 0, fat: 0, msnf: 0, cost: 3.0, confidence: 'high' },
-    { name: 'Egg Yolks', pac: 15.7, pod: 0.8, afp: 0.3, fat: 31.9, msnf: 1.1, cost: 8.0, confidence: 'medium' },
-    { name: 'Stabilizer', pac: 0, pod: 85, afp: 2.5, fat: 0, msnf: 0, cost: 12.0, confidence: 'medium' },
-    { name: 'Vanilla Extract', pac: 0, pod: 0, afp: 0, fat: 0, msnf: 0, cost: 25.0, confidence: 'high' },
-    { name: 'Cocoa Powder', pac: 19.6, pod: 1.2, afp: 0.2, fat: 10.8, msnf: 3.4, cost: 15.0, confidence: 'medium' }
-  ]);
-
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [recipe, setRecipe] = useState<{[key: string]: number}>({
     'Heavy Cream': 500,
     'Whole Milk': 250,
@@ -42,6 +37,23 @@ const FlavourEngine = () => {
   });
 
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [currentRecipeName, setCurrentRecipeName] = useState('');
+
+  useEffect(() => {
+    // Load ingredients from database service
+    const dbIngredients = databaseService.getIngredients();
+    const formattedIngredients = dbIngredients.map(ing => ({
+      name: ing.name,
+      pac: ing.pac,
+      pod: ing.pod,
+      afp: ing.afp,
+      fat: ing.fat,
+      msnf: ing.msnf,
+      cost: ing.cost,
+      confidence: ing.confidence
+    }));
+    setIngredients(formattedIngredients);
+  }, []);
 
   const addIngredientToRecipe = (ingredientName: string) => {
     if (!recipe[ingredientName]) {
@@ -93,6 +105,40 @@ const FlavourEngine = () => {
     });
   };
 
+  const saveRecipe = () => {
+    if (!currentRecipeName.trim()) {
+      toast({
+        title: "Recipe Name Required",
+        description: "Please enter a name for your recipe",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const savedRecipe = databaseService.saveRecipe({
+        name: currentRecipeName,
+        ingredients: recipe,
+        metrics,
+        predictions: null, // Will be filled by AI analysis
+        notes: `Recipe created with ${Object.keys(recipe).length} ingredients`
+      });
+
+      toast({
+        title: "Recipe Saved",
+        description: `${savedRecipe.name} has been saved to your recipe history`,
+      });
+      
+      setCurrentRecipeName('');
+    } catch (error) {
+      toast({
+        title: "Save Error",
+        description: "Failed to save recipe",
+        variant: "destructive"
+      });
+    }
+  };
+
   const exportToCSV = () => {
     const csvContent = [
       ['Ingredient', 'Amount (g/ml)', 'PAC (%)', 'POD (%)', 'AFP (%)', 'Fat (%)', 'MSNF (%)', 'Cost (₹/kg)'],
@@ -115,7 +161,7 @@ const FlavourEngine = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ice_cream_recipe.csv';
+    a.download = `${currentRecipeName || 'ice_cream_recipe'}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     
@@ -157,62 +203,90 @@ const FlavourEngine = () => {
           AI Flavour Engine
           <Sparkles className="h-5 w-5 text-purple-600 animate-pulse" />
           <div className="ml-2 px-3 py-1 bg-gradient-to-r from-green-500 to-teal-500 text-white text-sm rounded-full">
-            ML Powered
+            ML Powered v2.0
           </div>
         </CardTitle>
         <CardDescription className="text-lg">
-          Advanced machine learning for ice cream and gelato recipe optimization with predictive analysis
+          Advanced machine learning for ice cream and gelato recipe optimization with continuous learning and predictive analysis
         </CardDescription>
-        
-        <div className="flex gap-3 mt-4">
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Import CSV
-          </Button>
-          <Button
-            variant="outline"
-            onClick={exportToCSV}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export Recipe
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </div>
       </CardHeader>
 
-      <CardContent className="p-8">
-        <div className="grid lg:grid-cols-4 gap-8">
-          <RecipeInputs recipe={recipe} onUpdateRecipe={updateRecipe} />
-          <ChemistryAnalysis 
-            metrics={metrics} 
-            targets={targets} 
-            targetResults={targetResults} 
-          />
-          <AIOptimization 
-            allTargetsMet={allTargetsMet}
-            suggestions={suggestions}
-            isOptimizing={isOptimizing}
-            onAutoOptimize={handleAutoOptimize}
-          />
-          <div className="space-y-6">
-            <AIInsights recipe={recipe} metrics={metrics} />
-            <IngredientAnalyzer 
-              availableIngredients={ingredients.map(ing => ing.name)}
-              onAddIngredient={addIngredientToRecipe}
-            />
-          </div>
-        </div>
+      <CardContent className="p-6">
+        <Tabs defaultValue="recipe" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="recipe">Recipe Development</TabsTrigger>
+            <TabsTrigger value="database">Database Management</TabsTrigger>
+            <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="recipe" className="mt-6">
+            <div className="space-y-6">
+              {/* Recipe Name and Actions */}
+              <div className="flex gap-3 items-center">
+                <input
+                  type="text"
+                  placeholder="Enter recipe name..."
+                  value={currentRecipeName}
+                  onChange={(e) => setCurrentRecipeName(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded-md"
+                />
+                <Button onClick={saveRecipe} disabled={!currentRecipeName.trim()}>
+                  Save Recipe
+                </Button>
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+                <Button variant="outline" onClick={exportToCSV}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Recipe
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Main Recipe Development Interface */}
+              <div className="grid lg:grid-cols-4 gap-8">
+                <RecipeInputs recipe={recipe} onUpdateRecipe={updateRecipe} />
+                <ChemistryAnalysis 
+                  metrics={metrics} 
+                  targets={targets} 
+                  targetResults={targetResults} 
+                />
+                <AIOptimization 
+                  allTargetsMet={allTargetsMet}
+                  suggestions={suggestions}
+                  isOptimizing={isOptimizing}
+                  onAutoOptimize={handleAutoOptimize}
+                />
+                <div className="space-y-6">
+                  <AIInsights recipe={recipe} metrics={metrics} />
+                  <IngredientAnalyzer 
+                    availableIngredients={ingredients.map(ing => ing.name)}
+                    onAddIngredient={addIngredientToRecipe}
+                  />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="database" className="mt-6">
+            <DatabaseManager />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <div className="text-center py-12">
+              <Database className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">Performance Analytics</h3>
+              <p className="text-gray-500">Detailed analytics dashboard coming soon...</p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
