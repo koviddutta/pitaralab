@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { DollarSign, TrendingUp, Calculator } from 'lucide-react';
+import { IndianRupee, TrendingUp, Calculator } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,10 +17,10 @@ interface CostIngredient {
 
 const CostCalculator = () => {
   const [ingredients, setIngredients] = useState<CostIngredient[]>([
-    { name: 'Heavy Cream (1L)', amount: 0.5, unit: 'L', costPerUnit: 4.50, totalCost: 0 },
-    { name: 'Milk (1L)', amount: 0.25, unit: 'L', costPerUnit: 2.20, totalCost: 0 },
-    { name: 'Sugar (1kg)', amount: 0.15, unit: 'kg', costPerUnit: 3.00, totalCost: 0 },
-    { name: 'Eggs (dozen)', amount: 0.5, unit: 'dozen', costPerUnit: 4.00, totalCost: 0 }
+    { name: 'Heavy Cream (1L)', amount: 0.5, unit: 'L', costPerUnit: 380, totalCost: 0 },
+    { name: 'Milk (1L)', amount: 0.25, unit: 'L', costPerUnit: 60, totalCost: 0 },
+    { name: 'Sugar (1kg)', amount: 0.15, unit: 'kg', costPerUnit: 50, totalCost: 0 },
+    { name: 'Eggs (dozen)', amount: 0.5, unit: 'dozen', costPerUnit: 120, totalCost: 0 }
   ]);
   
   const [servings, setServings] = useState(8);
@@ -62,11 +62,13 @@ const CostCalculator = () => {
   const suggestedPrice = costPerServing * (1 + markupPercentage / 100);
   const profit = suggestedPrice - costPerServing;
 
+  const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`;
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50">
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-yellow-600" />
+          <IndianRupee className="h-5 w-5 text-yellow-600" />
           Cost Calculator
         </CardTitle>
         <CardDescription>
@@ -115,7 +117,7 @@ const CostCalculator = () => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs text-gray-600">Cost/Unit</Label>
+                    <Label className="text-xs text-gray-600">Cost/Unit (₹)</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -126,8 +128,8 @@ const CostCalculator = () => {
                   </div>
                   <div className="col-span-2">
                     <Label className="text-xs text-gray-600">Total Cost</Label>
-                    <div className="h-8 px-2 py-1 bg-white border rounded text-sm font-medium text-green-700">
-                      ${ingredient.totalCost.toFixed(2)}
+                    <div className="h-8 px-2 py-1 bg-white border rounded text-sm font-medium text-green-700 flex items-center">
+                      {formatCurrency(ingredient.totalCost)}
                     </div>
                   </div>
                   <div className="col-span-1">
@@ -156,7 +158,10 @@ const CostCalculator = () => {
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Pricing Analysis</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <IndianRupee className="h-5 w-5" />
+                  Pricing Analysis
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -186,22 +191,25 @@ const CostCalculator = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Total Recipe Cost:</span>
-                    <span className="font-semibold">${totalCost.toFixed(2)}</span>
+                    <span className="font-semibold">{formatCurrency(totalCost)}</span>
                   </div>
                   
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Cost per Serving:</span>
-                    <span className="font-semibold">${costPerServing.toFixed(2)}</span>
+                    <span className="font-semibold">{formatCurrency(costPerServing)}</span>
                   </div>
                   
                   <div className="flex justify-between text-lg">
                     <span className="text-green-700 font-semibold">Suggested Price:</span>
-                    <span className="font-bold text-green-700">${suggestedPrice.toFixed(2)}</span>
+                    <span className="font-bold text-green-700 flex items-center gap-1">
+                      <IndianRupee className="h-5 w-5" />
+                      {suggestedPrice.toFixed(2)}
+                    </span>
                   </div>
                   
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Profit per Serving:</span>
-                    <span className="font-semibold text-green-600">${profit.toFixed(2)}</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(profit)}</span>
                   </div>
                 </div>
 

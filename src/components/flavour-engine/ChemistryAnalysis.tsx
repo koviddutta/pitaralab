@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Target, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Target, CheckCircle, AlertTriangle, IndianRupee } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RecipeMetrics, RecipeTargets } from './types';
@@ -68,8 +68,14 @@ const ChemistryAnalysis = ({ metrics, targets, targetResults }: ChemistryAnalysi
 
         <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-medium text-blue-800">Batch Cost</span>
-            <span className="font-bold text-xl text-blue-900">₹{metrics.cost.toFixed(2)}</span>
+            <span className="text-sm font-medium text-blue-800 flex items-center gap-1">
+              <IndianRupee className="h-4 w-4" />
+              Batch Cost
+            </span>
+            <span className="font-bold text-xl text-blue-900 flex items-center gap-1">
+              <IndianRupee className="h-5 w-5" />
+              {metrics.cost.toFixed(2)}
+            </span>
           </div>
           <div className="text-xs text-blue-600">Total Weight: {metrics.totalWeight}g</div>
         </div>
