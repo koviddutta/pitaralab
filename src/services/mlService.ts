@@ -156,15 +156,20 @@ class MLService {
   }
 
   private calculateBaseProfile(ingredientData: any[]): FlavorProfile {
-    const totalWeight = ingredientData.reduce((sum, ing) => sum + (ing?.fat || 0) + (ing?.msnf || 0), 0) || 1;
+    const totalWeight = ingredientData.reduce((sum, ing) => {
+      const fat = typeof ing?.fat === 'number' ? ing.fat : 0;
+      const msnf = typeof ing?.msnf === 'number' ? ing.msnf : 0;
+      return sum + fat + msnf;
+    }, 0) || 1;
     
     const sweetIngredients = ingredientData.filter(ing => 
       ing?.flavorNotes?.some((note: string) => ['sweet', 'vanilla', 'honey'].includes(note.toLowerCase()))
     ).length;
     
-    const richIngredients = ingredientData.filter(ing => 
-      (ing?.fat || 0) > 10 || ing?.flavorNotes?.some((note: string) => ['rich', 'creamy', 'custardy'].includes(note.toLowerCase()))
-    ).length;
+    const richIngredients = ingredientData.filter(ing => {
+      const fat = typeof ing?.fat === 'number' ? ing.fat : 0;
+      return fat > 10 || ing?.flavorNotes?.some((note: string) => ['rich', 'creamy', 'custardy'].includes(note.toLowerCase()));
+    }).length;
 
     const creamyIngredients = ingredientData.filter(ing => 
       ing?.category === 'dairy' || ing?.flavorNotes?.some((note: string) => ['creamy', 'smooth'].includes(note.toLowerCase()))
@@ -284,12 +289,16 @@ class MLService {
     ).length;
     similarity += (overlap / Math.max(ing1.flavorNotes.length, ing2.flavorNotes.length)) * 0.3;
     
-    // Fat content similarity
-    const fatDiff = Math.abs((ing1.fat || 0) - (ing2.fat || 0)) / Math.max(ing1.fat || 1, ing2.fat || 1, 1);
+    // Fat content similarity - fix type issues
+    const fat1 = typeof ing1.fat === 'number' ? ing1.fat : 0;
+    const fat2 = typeof ing2.fat === 'number' ? ing2.fat : 0;
+    const fatDiff = Math.abs(fat1 - fat2) / Math.max(fat1, fat2, 1);
     similarity += (1 - fatDiff) * 0.2;
     
-    // Cost similarity
-    const costDiff = Math.abs((ing1.cost || 0) - (ing2.cost || 0)) / Math.max(ing1.cost || 1, ing2.cost || 1, 1);
+    // Cost similarity - fix type issues
+    const cost1 = typeof ing1.cost === 'number' ? ing1.cost : 0;
+    const cost2 = typeof ing2.cost === 'number' ? ing2.cost : 0;
+    const costDiff = Math.abs(cost1 - cost2) / Math.max(cost1, cost2, 1);
     similarity += (1 - costDiff) * 0.1;
     
     return Math.min(0.95, similarity);
