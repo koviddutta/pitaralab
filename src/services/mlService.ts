@@ -50,7 +50,7 @@ export interface ModelPerformance {
   modelVersion: string;
 }
 
-type DeviceType = 'webgpu' | 'auto' | 'gpu' | 'cpu' | 'wasm';
+type DeviceType = 'webgpu' | 'auto' | 'gpu' | 'cpu' | 'wasm' | 'cuda' | 'dml' | 'webnn' | 'webnn-npu' | 'webnn-gpu' | 'webnn-cpu';
 
 class MLService {
   private textClassifier: any = null;
@@ -69,7 +69,7 @@ class MLService {
       // Test WebGPU availability
       this.isWebGPUAvailable = await this.testWebGPU();
       
-      const deviceConfig: { device?: DeviceType } = this.isWebGPUAvailable 
+      const deviceConfig = this.isWebGPUAvailable 
         ? { device: 'webgpu' as DeviceType } 
         : { device: 'cpu' as DeviceType };
       
@@ -101,8 +101,8 @@ class MLService {
 
   private async testWebGPU(): Promise<boolean> {
     try {
-      if (!navigator.gpu) return false;
-      const adapter = await navigator.gpu.requestAdapter();
+      if (!('gpu' in navigator)) return false;
+      const adapter = await navigator.gpu?.requestAdapter();
       return adapter !== null;
     } catch {
       return false;
@@ -355,7 +355,7 @@ class MLService {
 
     Object.entries(targets).forEach(([key, target]) => {
       const value = Number(metrics[key] || 0);
-      if (value !== undefined && !isNaN(value)) {
+      if (!isNaN(value)) {
         let score = 0;
         if (value >= target.min && value <= target.max) {
           // Within range, calculate distance from optimal
