@@ -403,9 +403,13 @@ class MLService {
   private calculateStabilityScore(recipe: {[key: string]: number}): number {
     let score = 0.6; // Base stability
     
-    if ((recipe['Stabilizer'] || 0) > 0) score += 0.3;
-    if ((recipe['Egg Yolks'] || 0) > 0) score += 0.15;
-    if ((recipe['Heavy Cream'] || 0) > 0) score += 0.1;
+    const stabilizer = recipe['Stabilizer'];
+    const eggYolks = recipe['Egg Yolks'];
+    const heavyCream = recipe['Heavy Cream'];
+    
+    if (typeof stabilizer === 'number' && stabilizer > 0) score += 0.3;
+    if (typeof eggYolks === 'number' && eggYolks > 0) score += 0.15;
+    if (typeof heavyCream === 'number' && heavyCream > 0) score += 0.1;
     
     return Math.min(1, score);
   }

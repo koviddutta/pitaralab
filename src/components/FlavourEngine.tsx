@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, Sparkles, Upload, Download, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,12 +12,17 @@ import { calculateRecipeMetrics, checkTargets, generateOptimizationSuggestions }
 import AIInsights from './flavour-engine/AIInsights';
 import IngredientAnalyzer from './flavour-engine/IngredientAnalyzer';
 import DatabaseManager from './DatabaseManager';
+import ProductSelector, { ProductType } from './ProductSelector';
+import ProductAnalysis from './flavour-engine/ProductAnalysis';
+import SugarBlendOptimizer from './flavour-engine/SugarBlendOptimizer';
 import { databaseService } from '@/services/databaseService';
+import { productParametersService } from '@/services/productParametersService';
 
 const FlavourEngine = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
+  const [selectedProduct, setSelectedProduct] = useState<ProductType>('ice-cream');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [recipe, setRecipe] = useState<{[key: string]: number}>({
     'Heavy Cream': 500,
@@ -28,7 +32,8 @@ const FlavourEngine = () => {
     'Stabilizer': 2
   });
 
-  const [targets] = useState<RecipeTargets>({
+  // Dynamic targets based on product type
+  const [targets, setTargets] = useState<RecipeTargets>({
     totalSolids: { min: 36, max: 42 },
     fat: { min: 14, max: 18 },
     msnf: { min: 9, max: 12 },
@@ -38,6 +43,30 @@ const FlavourEngine = () => {
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [currentRecipeName, setCurrentRecipeName] = useState('');
+
+  // Update targets when product type changes
+  useEffect(() => {
+    const params = productParametersService.getProductParameters(selectedProduct);
+    setTargets({
+      totalSolids: { min: params.totalSolids[0], max: params.totalSolids[1] },
+      fat: { min: params.fats[0], max: params.fats[1] },
+      msnf: { min: params.msnf[0], max: params.msnf[1] },
+      pac: { min: 3.2, max: 4.5 }, // Keep existing PAC range
+      sweetness: { min: params.sugar[0], max: params.sugar[1] }
+    });
+
+    // Update recipe name based on product type
+    if (!currentRecipeName || currentRecipeName.includes('Ice Cream') || currentRecipeName.includes('Gelato') || currentRecipeName.includes('Sorbet')) {
+      const productName = selectedProduct === 'ice-cream' ? 'Ice Cream' : 
+                         selectedProduct === 'gelato' ? 'Gelato' : 'Sorbet';
+      setCurrentRecipeName(`Classic Vanilla ${productName}`);
+    }
+
+    toast({
+      title: "Product Type Changed",
+      description: `Switched to ${selectedProduct} parameters and targets`,
+    });
+  }, [selectedProduct]);
 
   useEffect(() => {
     // Load ingredients from database service
@@ -63,7 +92,7 @@ const FlavourEngine = () => {
       }));
       toast({
         title: "Ingredient Added",
-        description: `${ingredientName} has been added to your recipe.`,
+        description: `${ingredientName} has been added to your ${selectedProduct} recipe.`,
       });
     } else {
       toast({
@@ -92,6 +121,10 @@ const FlavourEngine = () => {
     
     await new Promise(resolve => setTimeout(resolve, 2000));
     
+    // Apply product-specific optimizations
+    const validation = productParametersService.validateRecipeForProduct(recipe, selectedProduct);
+    const recommendations = productParametersService.generateProductRecommendations(selectedProduct, recipe);
+    
     suggestions.forEach(suggestion => {
       if (suggestion.action) {
         suggestion.action();
@@ -101,7 +134,27 @@ const FlavourEngine = () => {
     setIsOptimizing(false);
     toast({
       title: "Recipe Optimized",
-      description: "AI has applied suggested improvements to your recipe.",
+      description: `AI has optimized your ${selectedProduct} recipe with product-specific parameters.`,
+    });
+  };
+
+  const handleOptimizedSugarBlend = (blend: { [sugarType: string]: number }) => {
+    // Update recipe with optimized sugar blend
+    const newRecipe = { ...recipe };
+    
+    // Remove existing sugar
+    delete newRecipe['Sugar'];
+    
+    // Add optimized sugars
+    Object.entries(blend).forEach(([sugarType, amount]) => {
+      newRecipe[sugarType] = amount;
+    });
+    
+    setRecipe(newRecipe);
+    
+    toast({
+      title: "Sugar Blend Optimized",
+      description: `Applied optimized sugar blend for ${selectedProduct}`,
     });
   };
 
@@ -116,17 +169,22 @@ const FlavourEngine = () => {
     }
 
     try {
+      const validation = productParametersService.validateRecipeForProduct(recipe, selectedProduct);
       const savedRecipe = databaseService.saveRecipe({
         name: currentRecipeName,
         ingredients: recipe,
         metrics,
-        predictions: null, // Will be filled by AI analysis
-        notes: `Recipe created with ${Object.keys(recipe).length} ingredients`
+        predictions: {
+          productType: selectedProduct,
+          validation: validation,
+          afpSp: productParametersService.calculateRecipeAfpSp(recipe)
+        },
+        notes: `${selectedProduct} recipe created with ${Object.keys(recipe).length} ingredients. ${validation.isValid ? 'Compliant' : 'Needs adjustment'}.`
       });
 
       toast({
         title: "Recipe Saved",
-        description: `${savedRecipe.name} has been saved to your recipe history`,
+        description: `${savedRecipe.name} has been saved with ${selectedProduct} parameters`,
       });
       
       setCurrentRecipeName('');
@@ -140,7 +198,16 @@ const FlavourEngine = () => {
   };
 
   const exportToCSV = () => {
+    const validation = productParametersService.validateRecipeForProduct(recipe, selectedProduct);
+    const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
+    
     const csvContent = [
+      ['Recipe Name', currentRecipeName],
+      ['Product Type', selectedProduct.toUpperCase()],
+      ['AFP (Sugars)', afpSp.afp.toFixed(2)],
+      ['SP', afpSp.sp.toFixed(2)],
+      ['Validation Status', validation.isValid ? 'COMPLIANT' : 'NEEDS ADJUSTMENT'],
+      [''],
       ['Ingredient', 'Amount (g/ml)', 'PAC (%)', 'POD (%)', 'AFP (%)', 'Fat (%)', 'MSNF (%)', 'Cost (₹/kg)'],
       ...Object.entries(recipe).map(([name, amount]) => {
         const ingredient = ingredients.find(ing => ing.name === name);
@@ -161,13 +228,13 @@ const FlavourEngine = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentRecipeName || 'ice_cream_recipe'}.csv`;
+    a.download = `${currentRecipeName || selectedProduct}_recipe.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     
     toast({
       title: "Recipe Exported",
-      description: "Your recipe has been exported as CSV file.",
+      description: `Your ${selectedProduct} recipe has been exported with all parameters.`,
     });
   };
 
@@ -193,6 +260,10 @@ const FlavourEngine = () => {
     }
   };
 
+  const totalSugarAmount = Object.entries(recipe)
+    .filter(([name]) => name.toLowerCase().includes('sugar') || name.toLowerCase().includes('sucrose') || name.toLowerCase().includes('dextrose'))
+    .reduce((sum, [, amount]) => sum + amount, 0);
+
   return (
     <Card className="w-full max-w-7xl mx-auto shadow-xl">
       <CardHeader className="bg-gradient-to-r from-purple-100 via-pink-50 to-indigo-100 border-b">
@@ -207,7 +278,7 @@ const FlavourEngine = () => {
           </div>
         </CardTitle>
         <CardDescription className="text-lg">
-          Advanced machine learning for ice cream and gelato recipe optimization with continuous learning and predictive analysis
+          Advanced machine learning for ice cream, gelato, and sorbet recipe optimization with product-specific parameters and predictive analysis
         </CardDescription>
       </CardHeader>
 
@@ -221,6 +292,12 @@ const FlavourEngine = () => {
 
           <TabsContent value="recipe" className="mt-6">
             <div className="space-y-6">
+              {/* Product Type Selection */}
+              <ProductSelector 
+                selectedProduct={selectedProduct} 
+                onProductChange={setSelectedProduct} 
+              />
+
               {/* Recipe Name and Actions */}
               <div className="flex gap-3 items-center">
                 <input
@@ -251,26 +328,48 @@ const FlavourEngine = () => {
               </div>
 
               {/* Main Recipe Development Interface */}
-              <div className="grid lg:grid-cols-4 gap-8">
-                <RecipeInputs recipe={recipe} onUpdateRecipe={updateRecipe} />
-                <ChemistryAnalysis 
-                  metrics={metrics} 
-                  targets={targets} 
-                  targetResults={targetResults} 
-                />
-                <AIOptimization 
-                  allTargetsMet={allTargetsMet}
-                  suggestions={suggestions}
-                  isOptimizing={isOptimizing}
-                  onAutoOptimize={handleAutoOptimize}
-                />
-                <div className="space-y-6">
-                  <AIInsights recipe={recipe} metrics={metrics} />
-                  <IngredientAnalyzer 
-                    availableIngredients={ingredients.map(ing => ing.name)}
-                    onAddIngredient={addIngredientToRecipe}
+              <div className="grid lg:grid-cols-6 gap-6">
+                <div className="lg:col-span-2">
+                  <RecipeInputs recipe={recipe} onUpdateRecipe={updateRecipe} />
+                </div>
+                
+                <div className="lg:col-span-2">
+                  <ChemistryAnalysis 
+                    metrics={metrics} 
+                    targets={targets} 
+                    targetResults={targetResults} 
                   />
                 </div>
+                
+                <div className="lg:col-span-2 space-y-6">
+                  <ProductAnalysis 
+                    productType={selectedProduct}
+                    recipe={recipe}
+                  />
+                  
+                  <AIOptimization 
+                    allTargetsMet={allTargetsMet}
+                    suggestions={suggestions}
+                    isOptimizing={isOptimizing}
+                    onAutoOptimize={handleAutoOptimize}
+                  />
+                </div>
+              </div>
+
+              {/* Advanced Tools Row */}
+              <div className="grid lg:grid-cols-3 gap-6 mt-6">
+                <SugarBlendOptimizer
+                  productType={selectedProduct}
+                  totalSugarAmount={totalSugarAmount}
+                  onOptimizedBlend={handleOptimizedSugarBlend}
+                />
+                
+                <AIInsights recipe={recipe} metrics={metrics} />
+                
+                <IngredientAnalyzer 
+                  availableIngredients={ingredients.map(ing => ing.name)}
+                  onAddIngredient={addIngredientToRecipe}
+                />
               </div>
             </div>
           </TabsContent>
