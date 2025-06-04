@@ -1,6 +1,18 @@
-
 import { pipeline } from '@huggingface/transformers';
 import { databaseService, TrainingData } from './databaseService';
+
+// WebGPU type declarations
+declare global {
+  interface Navigator {
+    gpu?: {
+      requestAdapter(): Promise<GPUAdapter | null>;
+    };
+  }
+}
+
+interface GPUAdapter {
+  // Basic GPU adapter interface
+}
 
 export interface FlavorProfile {
   sweetness: number;
@@ -38,6 +50,8 @@ export interface ModelPerformance {
   modelVersion: string;
 }
 
+type DeviceType = 'webgpu' | 'auto' | 'gpu' | 'cpu' | 'wasm';
+
 class MLService {
   private textClassifier: any = null;
   private embedder: any = null;
@@ -55,7 +69,9 @@ class MLService {
       // Test WebGPU availability
       this.isWebGPUAvailable = await this.testWebGPU();
       
-      const deviceConfig = this.isWebGPUAvailable ? { device: 'webgpu' } : {};
+      const deviceConfig: { device?: DeviceType } = this.isWebGPUAvailable 
+        ? { device: 'webgpu' as DeviceType } 
+        : { device: 'cpu' as DeviceType };
       
       // Initialize sentiment analysis for flavor profiling
       this.textClassifier = await pipeline(
@@ -147,7 +163,7 @@ class MLService {
     ).length;
     
     const richIngredients = ingredientData.filter(ing => 
-      ing?.fat > 10 || ing?.flavorNotes?.some((note: string) => ['rich', 'creamy', 'custardy'].includes(note.toLowerCase()))
+      (ing?.fat || 0) > 10 || ing?.flavorNotes?.some((note: string) => ['rich', 'creamy', 'custardy'].includes(note.toLowerCase()))
     ).length;
 
     const creamyIngredients = ingredientData.filter(ing => 
@@ -269,11 +285,11 @@ class MLService {
     similarity += (overlap / Math.max(ing1.flavorNotes.length, ing2.flavorNotes.length)) * 0.3;
     
     // Fat content similarity
-    const fatDiff = Math.abs(ing1.fat - ing2.fat) / Math.max(ing1.fat, ing2.fat, 1);
+    const fatDiff = Math.abs((ing1.fat || 0) - (ing2.fat || 0)) / Math.max(ing1.fat || 1, ing2.fat || 1, 1);
     similarity += (1 - fatDiff) * 0.2;
     
     // Cost similarity
-    const costDiff = Math.abs(ing1.cost - ing2.cost) / Math.max(ing1.cost, ing2.cost, 1);
+    const costDiff = Math.abs((ing1.cost || 0) - (ing2.cost || 0)) / Math.max(ing1.cost || 1, ing2.cost || 1, 1);
     similarity += (1 - costDiff) * 0.1;
     
     return Math.min(0.95, similarity);
@@ -338,8 +354,8 @@ class MLService {
     let factors = 0;
 
     Object.entries(targets).forEach(([key, target]) => {
-      const value = metrics[key];
-      if (value !== undefined) {
+      const value = Number(metrics[key] || 0);
+      if (value !== undefined && !isNaN(value)) {
         let score = 0;
         if (value >= target.min && value <= target.max) {
           // Within range, calculate distance from optimal
@@ -378,9 +394,9 @@ class MLService {
   private calculateStabilityScore(recipe: {[key: string]: number}): number {
     let score = 0.6; // Base stability
     
-    if (recipe['Stabilizer'] > 0) score += 0.3;
-    if (recipe['Egg Yolks'] > 0) score += 0.15;
-    if (recipe['Heavy Cream'] > 0) score += 0.1;
+    if ((recipe['Stabilizer'] || 0) > 0) score += 0.3;
+    if ((recipe['Egg Yolks'] || 0) > 0) score += 0.15;
+    if ((recipe['Heavy Cream'] || 0) > 0) score += 0.1;
     
     return Math.min(1, score);
   }
@@ -426,15 +442,17 @@ class MLService {
     }
     
     // Chemistry recommendations
-    if (metrics.fat < 14) {
+    const fatValue = Number(metrics.fat || 0);
+    if (fatValue < 14) {
       recommendations.push('Increase heavy cream or add malai for better fat content and mouthfeel');
     }
     
-    if (metrics.sweetness > 18) {
+    const sweetnessValue = Number(metrics.sweetness || 0);
+    if (sweetnessValue > 18) {
       recommendations.push('Balance excessive sweetness with a pinch of salt or cardamom');
     }
     
-    if (!recipe['Stabilizer'] && Object.values(recipe).reduce((sum: number, val) => sum + val, 0) > 1000) {
+    if (!recipe['Stabilizer'] && Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0) > 1000) {
       recommendations.push('Add stabilizer for larger batches to maintain consistency');
     }
     
@@ -455,12 +473,16 @@ class MLService {
   private identifyRiskFactors(recipe: any, metrics: any): string[] {
     const risks: string[] = [];
     
-    if (metrics.fat > 20) risks.push('High fat content may cause texture issues');
-    if (metrics.totalSolids > 45) risks.push('Excessive solids may lead to crystallization');
-    if (metrics.sweetness > 20) risks.push('Over-sweetening may mask other flavors');
-    if (!recipe['Stabilizer'] && metrics.totalSolids > 40) risks.push('No stabilizer with high solids increases ice crystal risk');
+    const fatValue = Number(metrics.fat || 0);
+    const totalSolidsValue = Number(metrics.totalSolids || 0);
+    const sweetnessValue = Number(metrics.sweetness || 0);
     
-    const totalWeight = Object.values(recipe).reduce((sum: number, val) => sum + val, 0);
+    if (fatValue > 20) risks.push('High fat content may cause texture issues');
+    if (totalSolidsValue > 45) risks.push('Excessive solids may lead to crystallization');
+    if (sweetnessValue > 20) risks.push('Over-sweetening may mask other flavors');
+    if (!recipe['Stabilizer'] && totalSolidsValue > 40) risks.push('No stabilizer with high solids increases ice crystal risk');
+    
+    const totalWeight = Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0);
     if (totalWeight < 500) risks.push('Small batch size may affect texture development');
     
     return risks;
@@ -528,10 +550,10 @@ class MLService {
 
   private adjustModelParameters(recentData: TrainingData[]): void {
     // Simple parameter adjustment based on feedback
-    const avgOutcome = recentData
-      .filter(data => data.actualOutcome !== undefined)
-      .reduce((sum, data) => sum + (data.actualOutcome || 0), 0) / 
-      recentData.filter(data => data.actualOutcome !== undefined).length;
+    const validData = recentData.filter(data => data.actualOutcome !== undefined);
+    if (validData.length === 0) return;
+    
+    const avgOutcome = validData.reduce((sum, data) => sum + Number(data.actualOutcome || 0), 0) / validData.length;
 
     if (avgOutcome > 0.8) {
       this.learningRate *= 1.05; // Increase learning rate if doing well
@@ -547,7 +569,7 @@ class MLService {
     const withOutcomes = trainingData.filter(data => data.actualOutcome !== undefined);
     
     const correctPredictions = withOutcomes.filter(data => {
-      const diff = Math.abs(data.successScore - (data.actualOutcome || 0));
+      const diff = Math.abs(data.successScore - Number(data.actualOutcome || 0));
       return diff < 0.2; // Within 20% is considered correct
     }).length;
 
