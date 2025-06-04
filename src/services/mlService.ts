@@ -1,5 +1,5 @@
 
-import { pipeline, Pipeline } from '@huggingface/transformers';
+import { pipeline } from '@huggingface/transformers';
 
 export interface FlavorProfile {
   sweetness: number;
@@ -23,8 +23,8 @@ export interface MLPrediction {
 }
 
 class MLService {
-  private textClassifier: Pipeline | null = null;
-  private embedder: Pipeline | null = null;
+  private textClassifier: any = null;
+  private embedder: any = null;
   private initialized = false;
 
   async initialize() {
