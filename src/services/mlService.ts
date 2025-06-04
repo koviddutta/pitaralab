@@ -1,3 +1,4 @@
+
 import { pipeline } from '@huggingface/transformers';
 import { databaseService, TrainingData } from './databaseService';
 
@@ -465,7 +466,9 @@ class MLService {
       recommendations.push('Balance excessive sweetness with a pinch of salt or cardamom');
     }
     
-    if (!recipe['Stabilizer'] && Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0) > 1000) {
+    const stabilizerValue = Number(recipe['Stabilizer'] || 0);
+    const totalWeight = Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0);
+    if (stabilizerValue === 0 && totalWeight > 1000) {
       recommendations.push('Add stabilizer for larger batches to maintain consistency');
     }
     
@@ -493,7 +496,11 @@ class MLService {
     if (fatValue > 20) risks.push('High fat content may cause texture issues');
     if (totalSolidsValue > 45) risks.push('Excessive solids may lead to crystallization');
     if (sweetnessValue > 20) risks.push('Over-sweetening may mask other flavors');
-    if (!recipe['Stabilizer'] && totalSolidsValue > 40) risks.push('No stabilizer with high solids increases ice crystal risk');
+    
+    const stabilizerValue = Number(recipe['Stabilizer'] || 0);
+    if (stabilizerValue === 0 && totalSolidsValue > 40) {
+      risks.push('No stabilizer with high solids increases ice crystal risk');
+    }
     
     const totalWeight = Object.values(recipe).reduce((sum: number, val) => sum + Number(val || 0), 0);
     if (totalWeight < 500) risks.push('Small batch size may affect texture development');
