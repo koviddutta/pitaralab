@@ -1,4 +1,3 @@
-
 export interface IngredientData {
   id: string;
   name: string;
@@ -260,6 +259,11 @@ class DatabaseService {
       this.recipeHistory[index].notes = notes;
       this.saveRecipeHistory();
     }
+  }
+
+  getRecipes() {
+    const stored = localStorage.getItem('recipes');
+    return stored ? JSON.parse(stored) : [];
   }
 
   // Data Export/Import

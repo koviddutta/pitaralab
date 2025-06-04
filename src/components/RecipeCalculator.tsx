@@ -1,95 +1,40 @@
-
 import React, { useState, useEffect } from 'react';
-import { Calculator, Users, Scale, Save, Download, Upload, Plus, Minus, RotateCcw, Smartphone, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Calculator, Plus, Minus, Save, Download, Upload, Smartphone, Monitor, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { productParametersService, ProductType } from '@/services/productParametersService';
-
-interface Ingredient {
-  name: string;
-  amount: number;
-  unit: string;
-  nutritionalValue?: {
-    sugar: number;
-    fat: number;
-    protein: number;
-    msnf: number;
-  };
-}
-
-interface Recipe {
-  name: string;
-  description: string;
-  originalServings: number;
-  ingredients: Ingredient[];
-  productType: ProductType;
-  notes: string;
-}
-
-interface RecipeMetrics {
-  totalWeight: number;
-  sugarPercentage: number;
-  fatPercentage: number;
-  totalSolids: number;
-  balance: 'excellent' | 'good' | 'needs-adjustment';
-  violations: string[];
-}
+import { mlService } from '@/services/mlService';
+import { databaseService } from '@/services/databaseService';
+import { productParametersService } from '@/services/productParametersService';
 
 const RecipeCalculator = () => {
-  const [productType, setProductType] = useState<ProductType>('ice-cream');
-  const [originalServings, setOriginalServings] = useState(4);
-  const [desiredServings, setDesiredServings] = useState(8);
-  const [recipeName, setRecipeName] = useState('Classic Vanilla Ice Cream');
-  const [recipeDescription, setRecipeDescription] = useState('Traditional vanilla ice cream with rich custard base');
-  const [recipeNotes, setRecipeNotes] = useState('');
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [recipe, setRecipe] = useState<{[key: string]: number}>({
+    'Heavy Cream': 500,
+    'Whole Milk': 250,
+    'Sugar': 120,
+    'Egg Yolks': 100,
+    'Vanilla Extract': 5,
+    'Stabilizer': 2
+  });
   
-  const [ingredients, setIngredients] = useState<Ingredient[]>([
-    { 
-      name: 'Heavy Cream', 
-      amount: 500, 
-      unit: 'ml',
-      nutritionalValue: { sugar: 0, fat: 35, protein: 2.8, msnf: 5.5 }
-    },
-    { 
-      name: 'Whole Milk', 
-      amount: 250, 
-      unit: 'ml',
-      nutritionalValue: { sugar: 4.7, fat: 3.5, protein: 3.4, msnf: 8.7 }
-    },
-    { 
-      name: 'Sugar', 
-      amount: 120, 
-      unit: 'g',
-      nutritionalValue: { sugar: 100, fat: 0, protein: 0, msnf: 0 }
-    },
-    { 
-      name: 'Egg Yolks', 
-      amount: 100, 
-      unit: 'g',
-      nutritionalValue: { sugar: 0.6, fat: 31.9, protein: 15.9, msnf: 1.1 }
-    },
-    { 
-      name: 'Vanilla Extract', 
-      amount: 5, 
-      unit: 'ml',
-      nutritionalValue: { sugar: 12.6, fat: 0.1, protein: 0.1, msnf: 0 }
-    }
-  ]);
-
+  const [recipeName, setRecipeName] = useState('');
+  const [productType, setProductType] = useState<'ice-cream' | 'gelato' | 'sorbet'>('ice-cream');
+  const [metrics, setMetrics] = useState<any>({});
+  const [validation, setValidation] = useState<any>({});
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [newIngredient, setNewIngredient] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  
   const { toast } = useToast();
 
-  // Check for mobile view
+  // Check for mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobileView(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 768);
     };
     
     checkMobile();
@@ -97,106 +42,76 @@ const RecipeCalculator = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Update recipe based on product type
+  // Real-time calculation and validation
   useEffect(() => {
-    const params = productParametersService.getProductParameters(productType);
-    
-    // Adjust recipe name based on product type
-    const productName = productType === 'ice-cream' ? 'Ice Cream' : 
-                       productType === 'gelato' ? 'Gelato' : 'Sorbet';
-    
-    if (recipeName.includes('Ice Cream') || recipeName.includes('Gelato') || recipeName.includes('Sorbet')) {
-      setRecipeName(`Classic Vanilla ${productName}`);
-      setRecipeDescription(`Traditional ${productName.toLowerCase()} with ${productType === 'sorbet' ? 'fruit base' : 'rich custard base'}`);
-    }
-
-    // Adjust ingredients for sorbet
-    if (productType === 'sorbet') {
-      setIngredients([
-        { name: 'Water', amount: 400, unit: 'ml', nutritionalValue: { sugar: 0, fat: 0, protein: 0, msnf: 0 } },
-        { name: 'Sugar', amount: 150, unit: 'g', nutritionalValue: { sugar: 100, fat: 0, protein: 0, msnf: 0 } },
-        { name: 'Fresh Fruit', amount: 300, unit: 'g', nutritionalValue: { sugar: 8, fat: 0.2, protein: 0.8, msnf: 0 } },
-        { name: 'Lemon Juice', amount: 15, unit: 'ml', nutritionalValue: { sugar: 2.5, fat: 0.2, protein: 0.4, msnf: 0 } },
-        { name: 'Stabilizer', amount: 2, unit: 'g', nutritionalValue: { sugar: 0, fat: 0, protein: 0, msnf: 0 } }
-      ]);
-    }
-
-    toast({
-      title: "Product Type Changed",
-      description: `Switched to ${productName} parameters and adjusted recipe accordingly`,
-    });
-  }, [productType]);
-
-  const scalingFactor = desiredServings / originalServings;
-
-  const calculateMetrics = (): RecipeMetrics => {
-    const totalWeight = ingredients.reduce((sum, ing) => sum + (ing.amount * scalingFactor), 0);
-    let totalSugar = 0;
-    let totalFat = 0;
-    let totalSolids = 0;
-
-    ingredients.forEach(ing => {
-      const scaledAmount = ing.amount * scalingFactor;
-      const density = ing.unit === 'ml' ? 1 : 1; // Simplified density calculation
-      const weightInGrams = scaledAmount * density;
-      
-      if (ing.nutritionalValue) {
-        totalSugar += (weightInGrams * ing.nutritionalValue.sugar) / 100;
-        totalFat += (weightInGrams * ing.nutritionalValue.fat) / 100;
-        totalSolids += (weightInGrams * (ing.nutritionalValue.sugar + ing.nutritionalValue.fat + ing.nutritionalValue.msnf)) / 100;
+    const calculateMetrics = async () => {
+      setIsCalculating(true);
+      try {
+        const calculatedMetrics = mlService.calculateRecipeMetrics(recipe);
+        const recipeValidation = productParametersService.validateRecipeForProduct(recipe, productType);
+        const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
+        
+        setMetrics({
+          ...calculatedMetrics,
+          ...afpSp
+        });
+        setValidation(recipeValidation);
+      } catch (error) {
+        console.error('Calculation error:', error);
+      } finally {
+        setIsCalculating(false);
       }
-    });
-
-    const sugarPercentage = (totalSugar / totalWeight) * 100;
-    const fatPercentage = (totalFat / totalWeight) * 100;
-    const totalSolidsPercentage = (totalSolids / totalWeight) * 100;
-
-    // Validate against product parameters
-    const validation = productParametersService.validateRecipeForProduct(
-      Object.fromEntries(ingredients.map(ing => [ing.name, ing.amount * scalingFactor])),
-      productType
-    );
-
-    const balance = validation.isValid ? 'excellent' : 
-                   validation.violations.length <= 2 ? 'good' : 'needs-adjustment';
-
-    return {
-      totalWeight,
-      sugarPercentage,
-      fatPercentage,
-      totalSolids: totalSolidsPercentage,
-      balance,
-      violations: validation.violations
     };
+
+    if (Object.keys(recipe).length > 0) {
+      calculateMetrics();
+    }
+  }, [recipe, productType]);
+
+  const updateRecipe = (ingredient: string, value: string) => {
+    const numValue = Number(value) || 0;
+    setRecipe(prev => ({
+      ...prev,
+      [ingredient]: numValue
+    }));
   };
 
-  const metrics = calculateMetrics();
+  const adjustAmount = (ingredient: string, delta: number) => {
+    const currentAmount = recipe[ingredient] || 0;
+    const newAmount = Math.max(0, currentAmount + delta);
+    updateRecipe(ingredient, newAmount.toString());
+  };
 
   const addIngredient = () => {
-    setIngredients([...ingredients, { 
-      name: '', 
-      amount: 0, 
-      unit: 'g',
-      nutritionalValue: { sugar: 0, fat: 0, protein: 0, msnf: 0 }
-    }]);
-  };
-
-  const updateIngredient = (index: number, field: keyof Ingredient, value: any) => {
-    const updated = [...ingredients];
-    updated[index] = { ...updated[index], [field]: value };
-    setIngredients(updated);
-  };
-
-  const removeIngredient = (index: number) => {
-    if (ingredients.length > 1) {
-      setIngredients(ingredients.filter((_, i) => i !== index));
+    if (!newIngredient.trim() || !newAmount) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter ingredient name and amount",
+        variant: "destructive"
+      });
+      return;
     }
+
+    setRecipe(prev => ({
+      ...prev,
+      [newIngredient.trim()]: Number(newAmount)
+    }));
+    
+    setNewIngredient('');
+    setNewAmount('');
+    
+    toast({
+      title: "Ingredient Added",
+      description: `${newIngredient} added to recipe`
+    });
   };
 
-  const quickAdjust = (index: number, change: number) => {
-    const updated = [...ingredients];
-    updated[index].amount = Math.max(0, updated[index].amount + change);
-    setIngredients(updated);
+  const removeIngredient = (ingredient: string) => {
+    setRecipe(prev => {
+      const newRecipe = { ...prev };
+      delete newRecipe[ingredient];
+      return newRecipe;
+    });
   };
 
   const saveRecipe = () => {
@@ -209,415 +124,416 @@ const RecipeCalculator = () => {
       return;
     }
 
-    const recipe: Recipe = {
-      name: recipeName,
-      description: recipeDescription,
-      originalServings,
-      ingredients,
-      productType,
-      notes: recipeNotes
-    };
-    
-    const recipes = JSON.parse(localStorage.getItem('iceCreamRecipes') || '[]');
-    recipes.push({ ...recipe, id: Date.now(), createdAt: new Date().toISOString() });
-    localStorage.setItem('iceCreamRecipes', JSON.stringify(recipes));
-    
-    toast({
-      title: "Recipe Saved Successfully!",
-      description: `${recipeName} has been saved with ${productType} parameters`,
-    });
+    try {
+      databaseService.saveRecipe({
+        name: recipeName,
+        ingredients: recipe,
+        metrics,
+        predictions: {
+          productType,
+          validation,
+          afpSp: { afp: metrics.afp, sp: metrics.sp }
+        },
+        notes: `${productType} recipe with ${Object.keys(recipe).length} ingredients`
+      });
+
+      toast({
+        title: "Recipe Saved",
+        description: `${recipeName} has been saved successfully`
+      });
+      
+      setRecipeName('');
+    } catch (error) {
+      toast({
+        title: "Save Error",
+        description: "Failed to save recipe",
+        variant: "destructive"
+      });
+    }
   };
 
   const exportRecipe = () => {
-    const scaledIngredients = ingredients.map(ing => ({
-      ...ing,
-      amount: ing.amount * scalingFactor
-    }));
-
     const csvContent = [
-      ['Recipe Name', recipeName],
-      ['Product Type', productType.toUpperCase()],
-      ['Description', recipeDescription],
-      ['Servings', desiredServings.toString()],
-      ['Total Weight (g)', metrics.totalWeight.toFixed(1)],
-      ['Sugar %', metrics.sugarPercentage.toFixed(1)],
-      ['Fat %', metrics.fatPercentage.toFixed(1)],
-      ['Total Solids %', metrics.totalSolids.toFixed(1)],
-      ['Balance Status', metrics.balance],
+      ['Ingredient', 'Amount (g/ml)', 'Percentage'],
+      ...Object.entries(recipe).map(([name, amount]) => [
+        name,
+        amount,
+        ((amount / metrics.totalWeight) * 100).toFixed(2) + '%'
+      ]),
       [''],
-      ['Ingredient', 'Amount', 'Unit', 'Sugar %', 'Fat %', 'Protein %', 'MSNF %'],
-      ...scaledIngredients.map(ing => [
-        ing.name, 
-        ing.amount.toFixed(1), 
-        ing.unit,
-        ing.nutritionalValue?.sugar || 0,
-        ing.nutritionalValue?.fat || 0,
-        ing.nutritionalValue?.protein || 0,
-        ing.nutritionalValue?.msnf || 0
-      ])
+      ['Metrics', 'Value', 'Target Range'],
+      ['Total Weight', `${metrics.totalWeight}g`, '500-2000g'],
+      ['Sugar %', `${metrics.sugarPercentage?.toFixed(2)}%`, '14-22%'],
+      ['Fat %', `${metrics.fatPercentage?.toFixed(2)}%`, '10-20%'],
+      ['Total Solids %', `${metrics.totalSolids?.toFixed(2)}%`, '32-42%'],
+      ['AFP', metrics.afp?.toFixed(2), '22-28'],
+      ['SP', metrics.sp?.toFixed(2), '12-22']
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${recipeName.replace(/\s+/g, '_')}_${desiredServings}_servings.csv`;
+    a.download = `${recipeName || 'recipe'}_${productType}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-
+    
     toast({
       title: "Recipe Exported",
-      description: `Your ${productType} recipe has been exported with detailed nutritional data`,
+      description: "Recipe data exported successfully"
     });
   };
 
-  const resetRecipe = () => {
-    const defaultIngredients = productType === 'sorbet' ? [
-      { name: 'Water', amount: 400, unit: 'ml', nutritionalValue: { sugar: 0, fat: 0, protein: 0, msnf: 0 } },
-      { name: 'Sugar', amount: 150, unit: 'g', nutritionalValue: { sugar: 100, fat: 0, protein: 0, msnf: 0 } },
-      { name: 'Fresh Fruit', amount: 300, unit: 'g', nutritionalValue: { sugar: 8, fat: 0.2, protein: 0.8, msnf: 0 } }
-    ] : [
-      { name: 'Heavy Cream', amount: 500, unit: 'ml', nutritionalValue: { sugar: 0, fat: 35, protein: 2.8, msnf: 5.5 } },
-      { name: 'Whole Milk', amount: 250, unit: 'ml', nutritionalValue: { sugar: 4.7, fat: 3.5, protein: 3.4, msnf: 8.7 } },
-      { name: 'Sugar', amount: 120, unit: 'g', nutritionalValue: { sugar: 100, fat: 0, protein: 0, msnf: 0 } },
-      { name: 'Egg Yolks', amount: 100, unit: 'g', nutritionalValue: { sugar: 0.6, fat: 31.9, protein: 15.9, msnf: 1.1 } }
-    ];
-
-    setIngredients(defaultIngredients);
-    setRecipeName(`Classic Vanilla ${productType === 'ice-cream' ? 'Ice Cream' : productType === 'gelato' ? 'Gelato' : 'Sorbet'}`);
-    setRecipeDescription(`Traditional ${productType} with ${productType === 'sorbet' ? 'fruit base' : 'rich custard base'}`);
-    setOriginalServings(4);
-    setDesiredServings(8);
-    setRecipeNotes('');
+  const getParameterStatus = (value: number, min: number, max: number) => {
+    if (value >= min && value <= max) return 'optimal';
+    if (value < min * 0.9 || value > max * 1.1) return 'critical';
+    return 'warning';
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'optimal': return 'text-green-600 bg-green-50';
+      case 'warning': return 'text-yellow-600 bg-yellow-50';
+      case 'critical': return 'text-red-600 bg-red-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const productParams = productParametersService.getProductParameters(productType);
+
   return (
-    <Card className="w-full max-w-7xl mx-auto shadow-xl">
-      <CardHeader className="bg-gradient-to-r from-pink-50 to-blue-50 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Calculator className="h-6 w-6 text-pink-600" />
-            <div>
-              <CardTitle className="text-xl md:text-2xl">Recipe Scaling Calculator</CardTitle>
-              <CardDescription className="text-sm md:text-base">
-                Scale and optimize your {productType} recipes with real-time parameter evaluation
-              </CardDescription>
-            </div>
-          </div>
-          {isMobileView && (
-            <Smartphone className="h-5 w-5 text-gray-500" />
-          )}
-        </div>
-      </CardHeader>
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <Calculator className="h-5 w-5 md:h-6 md:w-6" />
+            Advanced Recipe Calculator
+            {isMobile ? <Smartphone className="h-4 w-4 text-gray-500" /> : <Monitor className="h-4 w-4 text-gray-500" />}
+          </CardTitle>
+        </CardHeader>
+      </Card>
 
-      <CardContent className="p-3 md:p-6">
-        <div className="space-y-4 md:space-y-6">
-          {/* Product Type Selection */}
-          <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50">
-            <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row md:items-center gap-4">
-                <Label className="text-sm font-semibold text-purple-800">Product Type:</Label>
-                <div className="flex flex-wrap gap-2">
-                  {(['ice-cream', 'gelato', 'sorbet'] as ProductType[]).map((type) => (
-                    <Button
-                      key={type}
-                      variant={productType === type ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setProductType(type)}
-                      className={`text-xs md:text-sm ${
-                        productType === type 
-                          ? 'bg-purple-600 hover:bg-purple-700' 
-                          : 'hover:bg-purple-100'
-                      }`}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')}
-                    </Button>
-                  ))}
-                </div>
+      {/* Product Type Selection */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-2">Product Type</label>
+              <div className={`grid ${isMobile ? 'grid-cols-3' : 'grid-cols-3'} gap-2`}>
+                {(['ice-cream', 'gelato', 'sorbet'] as const).map((type) => (
+                  <Button
+                    key={type}
+                    variant={productType === type ? 'default' : 'outline'}
+                    onClick={() => setProductType(type)}
+                    className={isMobile ? 'text-xs px-2 py-1' : ''}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')}
+                  </Button>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Recipe Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="recipe-name" className="text-sm font-medium">Recipe Name</Label>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-2">Recipe Name</label>
               <Input
-                id="recipe-name"
+                placeholder="Enter recipe name..."
                 value={recipeName}
                 onChange={(e) => setRecipeName(e.target.value)}
-                className="mt-1"
-                placeholder="Enter recipe name..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="recipe-description" className="text-sm font-medium">Description</Label>
-              <Input
-                id="recipe-description"
-                value={recipeDescription}
-                onChange={(e) => setRecipeDescription(e.target.value)}
-                className="mt-1"
-                placeholder="Brief description..."
+                className={isMobile ? 'text-sm' : ''}
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Servings */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="original-servings" className="text-sm font-medium">Original Servings</Label>
-              <Input
-                id="original-servings"
-                type="number"
-                value={originalServings}
-                onChange={(e) => setOriginalServings(Number(e.target.value))}
-                className="mt-1"
-                min="1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="desired-servings" className="text-sm font-medium">Desired Servings</Label>
-              <Input
-                id="desired-servings"
-                type="number"
-                value={desiredServings}
-                onChange={(e) => setDesiredServings(Number(e.target.value))}
-                className="mt-1"
-                min="1"
-              />
-            </div>
-          </div>
-
-          {/* Scaling Factor & Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-3 bg-blue-50">
-              <div className="flex items-center gap-2">
-                <Scale className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">
-                  Scaling Factor: {scalingFactor.toFixed(2)}x
-                </span>
-              </div>
-            </Card>
-            
-            <Card className="p-3 bg-green-50">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-900">
-                  Total Weight: {metrics.totalWeight.toFixed(0)}g
-                </span>
-              </div>
-            </Card>
-            
-            <Card className={`p-3 ${
-              metrics.balance === 'excellent' ? 'bg-green-50' : 
-              metrics.balance === 'good' ? 'bg-yellow-50' : 'bg-red-50'
-            }`}>
-              <div className="flex items-center gap-2">
-                {metrics.balance === 'excellent' ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                )}
-                <span className={`text-sm font-medium ${
-                  metrics.balance === 'excellent' ? 'text-green-900' : 
-                  metrics.balance === 'good' ? 'text-yellow-900' : 'text-red-900'
-                }`}>
-                  Balance: {metrics.balance}
-                </span>
-              </div>
-            </Card>
-          </div>
-
-          {/* Nutritional Breakdown */}
-          <Card className="p-4 bg-gray-50">
-            <h4 className="font-semibold text-sm mb-3">Nutritional Analysis</h4>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Sugar:</span>
-                <Badge variant="outline" className="ml-2">
-                  {metrics.sugarPercentage.toFixed(1)}%
-                </Badge>
-              </div>
-              <div>
-                <span className="text-gray-600">Fat:</span>
-                <Badge variant="outline" className="ml-2">
-                  {metrics.fatPercentage.toFixed(1)}%
-                </Badge>
-              </div>
-              <div>
-                <span className="text-gray-600">Solids:</span>
-                <Badge variant="outline" className="ml-2">
-                  {metrics.totalSolids.toFixed(1)}%
-                </Badge>
-              </div>
-            </div>
-          </Card>
-
-          {/* Ingredients */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Ingredients</Label>
-              <Button onClick={addIngredient} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </div>
-            
-            {ingredients.map((ingredient, index) => (
-              <Card key={index} className="p-3 hover:shadow-md transition-shadow">
-                <div className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-12 md:col-span-4">
-                    <Input
-                      placeholder="Ingredient name"
-                      value={ingredient.name}
-                      onChange={(e) => updateIngredient(index, 'name', e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-                  
-                  <div className="col-span-6 md:col-span-2">
-                    <div className="flex items-center gap-1">
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-4 md:gap-6`}>
+        {/* Recipe Inputs */}
+        <Card className={isMobile ? 'order-1' : ''}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">Recipe Ingredients</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Existing Ingredients */}
+            {Object.entries(recipe).map(([ingredient, amount]) => (
+              <div key={ingredient} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium truncate flex-1 mr-2">
+                    {ingredient}
+                  </label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeIngredient(ingredient)}
+                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                  >
+                    ×
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isMobile && (
+                    <>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => quickAdjust(index, -10)}
+                        onClick={() => adjustAmount(ingredient, -10)}
                         className="h-8 w-8 p-0"
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        placeholder="Amount"
-                        value={ingredient.amount}
-                        onChange={(e) => updateIngredient(index, 'amount', Number(e.target.value))}
-                        className="text-sm text-center"
-                      />
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => quickAdjust(index, 10)}
+                        onClick={() => adjustAmount(ingredient, -1)}
+                        className="h-8 w-8 p-0"
+                      >
+                        -1
+                      </Button>
+                    </>
+                  )}
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => updateRecipe(ingredient, e.target.value)}
+                    className={`flex-1 ${isMobile ? 'text-sm' : ''}`}
+                    min="0"
+                    step="0.1"
+                  />
+                  {isMobile && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => adjustAmount(ingredient, 1)}
+                        className="h-8 w-8 p-0"
+                      >
+                        +1
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => adjustAmount(ingredient, 10)}
                         className="h-8 w-8 p-0"
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="col-span-6 md:col-span-2">
-                    <Select
-                      value={ingredient.unit}
-                      onValueChange={(value) => updateIngredient(index, 'unit', value)}
-                    >
-                      <SelectTrigger className="text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="g">grams</SelectItem>
-                        <SelectItem value="ml">ml</SelectItem>
-                        <SelectItem value="tsp">tsp</SelectItem>
-                        <SelectItem value="tbsp">tbsp</SelectItem>
-                        <SelectItem value="pieces">pieces</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="col-span-8 md:col-span-3 text-sm font-medium text-pink-600 px-2">
-                    {(ingredient.amount * scalingFactor).toFixed(1)} {ingredient.unit}
-                  </div>
-                  
-                  <div className="col-span-4 md:col-span-1 flex justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeIngredient(index)}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                      disabled={ingredients.length <= 1}
-                    >
-                      ×
-                    </Button>
-                  </div>
+                    </>
+                  )}
+                  <span className="text-xs text-gray-500 w-6">g</span>
                 </div>
-              </Card>
+                {amount > 0 && (
+                  <div className="text-xs text-gray-500">
+                    {((amount / metrics.totalWeight) * 100).toFixed(1)}% of total
+                  </div>
+                )}
+              </div>
             ))}
-          </div>
 
-          {/* Recipe Notes */}
-          <div>
-            <Label htmlFor="recipe-notes" className="text-sm font-medium">Recipe Notes</Label>
-            <Textarea
-              id="recipe-notes"
-              value={recipeNotes}
-              onChange={(e) => setRecipeNotes(e.target.value)}
-              placeholder="Add preparation notes, tips, or variations..."
-              className="mt-1 min-h-[80px]"
-            />
-          </div>
-
-          {/* Violations/Warnings */}
-          {metrics.violations.length > 0 && (
-            <Card className="p-4 bg-red-50 border-red-200">
-              <h4 className="font-semibold text-sm text-red-800 mb-2 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Recipe Adjustments Needed
-              </h4>
-              <ul className="space-y-1">
-                {metrics.violations.map((violation, index) => (
-                  <li key={index} className="text-sm text-red-700">
-                    • {violation}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button onClick={saveRecipe} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
-              Save Recipe
-            </Button>
-            
-            <Button onClick={exportRecipe} variant="outline" className="w-full">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            
-            <Button onClick={resetRecipe} variant="outline" className="w-full">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
-            
-            <Button variant="outline" className="w-full" disabled>
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-          </div>
-
-          {/* Summary Stats */}
-          <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="text-center">
-                <div className="font-semibold text-purple-800">{ingredients.length}</div>
-                <div className="text-purple-600">Ingredients</div>
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-purple-800">{originalServings} → {desiredServings}</div>
-                <div className="text-purple-600">Servings</div>
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-purple-800">{scalingFactor.toFixed(2)}x</div>
-                <div className="text-purple-600">Scale Factor</div>
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-purple-800">{productType}</div>
-                <div className="text-purple-600">Product Type</div>
+            {/* Add New Ingredient */}
+            <div className="border-t pt-3 space-y-2">
+              <div className="text-sm font-medium">Add Ingredient</div>
+              <Input
+                placeholder="Ingredient name"
+                value={newIngredient}
+                onChange={(e) => setNewIngredient(e.target.value)}
+                className={isMobile ? 'text-sm' : ''}
+              />
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                  className={`flex-1 ${isMobile ? 'text-sm' : ''}`}
+                />
+                <Button onClick={addIngredient} size="sm">
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          </Card>
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+
+        {/* Real-time Metrics */}
+        <Card className={isMobile ? 'order-2' : ''}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg flex items-center gap-2">
+              Recipe Analysis
+              {isCalculating && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-gray-600">Total Weight</div>
+                <div className="font-medium">{metrics.totalWeight?.toFixed(0) || 0}g</div>
+              </div>
+              <div>
+                <div className="text-gray-600">Ingredients</div>
+                <div className="font-medium">{Object.keys(recipe).length}</div>
+              </div>
+            </div>
+
+            {/* Parameter Status */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Parameter Status</div>
+              
+              {/* Sugar Content */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Sugar Content</span>
+                  <Badge className={getStatusColor(getParameterStatus(
+                    metrics.sugarPercentage || 0,
+                    productParams.sugar[0],
+                    productParams.sugar[1]
+                  ))}>
+                    {metrics.sugarPercentage?.toFixed(1) || 0}%
+                  </Badge>
+                </div>
+                <Progress 
+                  value={Math.min(100, (metrics.sugarPercentage || 0) / 30 * 100)} 
+                  className="h-2"
+                />
+                <div className="text-xs text-gray-500">
+                  Target: {productParams.sugar[0]}-{productParams.sugar[1]}%
+                </div>
+              </div>
+
+              {/* Fat Content */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Fat Content</span>
+                  <Badge className={getStatusColor(getParameterStatus(
+                    metrics.fatPercentage || 0,
+                    productParams.fats[0],
+                    productParams.fats[1]
+                  ))}>
+                    {metrics.fatPercentage?.toFixed(1) || 0}%
+                  </Badge>
+                </div>
+                <Progress 
+                  value={Math.min(100, (metrics.fatPercentage || 0) / 25 * 100)} 
+                  className="h-2"
+                />
+                <div className="text-xs text-gray-500">
+                  Target: {productParams.fats[0]}-{productParams.fats[1]}%
+                </div>
+              </div>
+
+              {/* Total Solids */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Total Solids</span>
+                  <Badge className={getStatusColor(getParameterStatus(
+                    metrics.totalSolids || 0,
+                    productParams.totalSolids[0],
+                    productParams.totalSolids[1]
+                  ))}>
+                    {metrics.totalSolids?.toFixed(1) || 0}%
+                  </Badge>
+                </div>
+                <Progress 
+                  value={Math.min(100, (metrics.totalSolids || 0) / 50 * 100)} 
+                  className="h-2"
+                />
+                <div className="text-xs text-gray-500">
+                  Target: {productParams.totalSolids[0]}-{productParams.totalSolids[1]}%
+                </div>
+              </div>
+
+              {/* AFP & SP */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-sm">AFP</div>
+                  <div className="font-medium text-lg">{metrics.afp?.toFixed(1) || 0}</div>
+                </div>
+                <div>
+                  <div className="text-sm">SP</div>
+                  <div className="font-medium text-lg">{metrics.sp?.toFixed(1) || 0}</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Validation & Actions */}
+        <Card className={isMobile ? 'order-3' : ''}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">Validation & Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Validation Status */}
+            <div className="flex items-center gap-2">
+              {validation.isValid ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              )}
+              <span className={`font-medium ${validation.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                {validation.isValid ? 'Recipe Valid' : 'Needs Adjustment'}
+              </span>
+            </div>
+
+            {/* Violations */}
+            {validation.violations && validation.violations.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-red-600">Issues Found:</div>
+                {validation.violations.map((violation: string, index: number) => (
+                  <div key={index} className="text-xs bg-red-50 text-red-700 p-2 rounded">
+                    {violation}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {validation.recommendations && validation.recommendations.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-blue-600">Recommendations:</div>
+                {validation.recommendations.map((rec: string, index: number) => (
+                  <div key={index} className="text-xs bg-blue-50 text-blue-700 p-2 rounded">
+                    {rec}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <Button 
+                onClick={saveRecipe} 
+                className="w-full" 
+                disabled={!recipeName.trim()}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Recipe
+              </Button>
+              
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+                <Button variant="outline" onClick={exportRecipe} size="sm">
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-1" />
+                  Import
+                </Button>
+              </div>
+            </div>
+
+            {/* Score */}
+            {validation.score !== undefined && (
+              <div className="text-center p-3 bg-gray-50 rounded">
+                <div className="text-2xl font-bold">{validation.score}/100</div>
+                <div className="text-sm text-gray-600">Recipe Score</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 
