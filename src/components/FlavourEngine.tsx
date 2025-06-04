@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, Sparkles, Upload, Download, Database } from 'lucide-react';
+import { Brain, Sparkles, Upload, Download, Database, Smartphone, Monitor } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +23,7 @@ const FlavourEngine = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
+  const [isMobile, setIsMobile] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductType>('ice-cream');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [recipe, setRecipe] = useState<{[key: string]: number}>({
@@ -31,6 +33,17 @@ const FlavourEngine = () => {
     'Egg Yolks': 100,
     'Stabilizer': 2
   });
+
+  // Check for mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Dynamic targets based on product type
   const [targets, setTargets] = useState<RecipeTargets>({
@@ -51,11 +64,10 @@ const FlavourEngine = () => {
       totalSolids: { min: params.totalSolids[0], max: params.totalSolids[1] },
       fat: { min: params.fats[0], max: params.fats[1] },
       msnf: { min: params.msnf[0], max: params.msnf[1] },
-      pac: { min: 3.2, max: 4.5 }, // Keep existing PAC range
+      pac: { min: 3.2, max: 4.5 },
       sweetness: { min: params.sugar[0], max: params.sugar[1] }
     });
 
-    // Update recipe name based on product type
     if (!currentRecipeName || currentRecipeName.includes('Ice Cream') || currentRecipeName.includes('Gelato') || currentRecipeName.includes('Sorbet')) {
       const productName = selectedProduct === 'ice-cream' ? 'Ice Cream' : 
                          selectedProduct === 'gelato' ? 'Gelato' : 'Sorbet';
@@ -69,7 +81,6 @@ const FlavourEngine = () => {
   }, [selectedProduct]);
 
   useEffect(() => {
-    // Load ingredients from database service
     const dbIngredients = databaseService.getIngredients();
     const formattedIngredients = dbIngredients.map(ing => ({
       name: ing.name,
@@ -88,7 +99,7 @@ const FlavourEngine = () => {
     if (!recipe[ingredientName]) {
       setRecipe(prev => ({
         ...prev,
-        [ingredientName]: 50 // Default amount
+        [ingredientName]: 50
       }));
       toast({
         title: "Ingredient Added",
@@ -121,7 +132,6 @@ const FlavourEngine = () => {
     
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Apply product-specific optimizations
     const validation = productParametersService.validateRecipeForProduct(recipe, selectedProduct);
     const recommendations = productParametersService.generateProductRecommendations(selectedProduct, recipe);
     
@@ -139,13 +149,10 @@ const FlavourEngine = () => {
   };
 
   const handleOptimizedSugarBlend = (blend: { [sugarType: string]: number }) => {
-    // Update recipe with optimized sugar blend
     const newRecipe = { ...recipe };
     
-    // Remove existing sugar
     delete newRecipe['Sugar'];
     
-    // Add optimized sugars
     Object.entries(blend).forEach(([sugarType, amount]) => {
       newRecipe[sugarType] = amount;
     });
@@ -267,31 +274,42 @@ const FlavourEngine = () => {
   return (
     <Card className="w-full max-w-7xl mx-auto shadow-xl">
       <CardHeader className="bg-gradient-to-r from-purple-100 via-pink-50 to-indigo-100 border-b">
-        <CardTitle className="flex items-center gap-3 text-2xl">
+        <CardTitle className={`flex items-center gap-2 md:gap-3 ${isMobile ? 'text-lg' : 'text-2xl'} flex-wrap`}>
           <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg">
-            <Brain className="h-6 w-6 text-white" />
+            <Brain className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-white`} />
           </div>
-          AI Flavour Engine
-          <Sparkles className="h-5 w-5 text-purple-600 animate-pulse" />
-          <div className="ml-2 px-3 py-1 bg-gradient-to-r from-green-500 to-teal-500 text-white text-sm rounded-full">
+          <span className="flex-1">AI Flavour Engine</span>
+          <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-purple-600 animate-pulse`} />
+          {isMobile ? (
+            <Smartphone className="h-4 w-4 text-gray-500" />
+          ) : (
+            <Monitor className="h-4 w-4 text-gray-500" />
+          )}
+          <div className={`px-2 md:px-3 py-1 bg-gradient-to-r from-green-500 to-teal-500 text-white ${isMobile ? 'text-xs' : 'text-sm'} rounded-full`}>
             ML Powered v2.0
           </div>
         </CardTitle>
-        <CardDescription className="text-lg">
+        <CardDescription className={`${isMobile ? 'text-sm' : 'text-lg'}`}>
           Advanced machine learning for ice cream, gelato, and sorbet recipe optimization with product-specific parameters and predictive analysis
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="p-6">
+      <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="recipe">Recipe Development</TabsTrigger>
-            <TabsTrigger value="database">Database Management</TabsTrigger>
-            <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}`}>
+            <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2' : ''}>
+              {isMobile ? 'Recipe' : 'Recipe Development'}
+            </TabsTrigger>
+            <TabsTrigger value="database" className={isMobile ? 'text-xs px-2' : ''}>
+              {isMobile ? 'Database' : 'Database Management'}
+            </TabsTrigger>
+            {!isMobile && (
+              <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
+            )}
           </TabsList>
 
-          <TabsContent value="recipe" className="mt-6">
-            <div className="space-y-6">
+          <TabsContent value="recipe" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
+            <div className={`space-y-4 ${isMobile ? '' : 'md:space-y-6'}`}>
               {/* Product Type Selection */}
               <ProductSelector 
                 selectedProduct={selectedProduct} 
@@ -299,25 +317,42 @@ const FlavourEngine = () => {
               />
 
               {/* Recipe Name and Actions */}
-              <div className="flex gap-3 items-center">
+              <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3 items-stretch ${isMobile ? '' : 'md:items-center'}`}>
                 <input
                   type="text"
                   placeholder="Enter recipe name..."
                   value={currentRecipeName}
                   onChange={(e) => setCurrentRecipeName(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-md"
+                  className={`flex-1 px-3 py-2 border rounded-md ${isMobile ? 'text-sm' : ''}`}
                 />
-                <Button onClick={saveRecipe} disabled={!currentRecipeName.trim()}>
-                  Save Recipe
-                </Button>
-                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import CSV
-                </Button>
-                <Button variant="outline" onClick={exportToCSV}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Recipe
-                </Button>
+                <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-2`}>
+                  <Button 
+                    onClick={saveRecipe} 
+                    disabled={!currentRecipeName.trim()}
+                    size={isMobile ? 'sm' : 'default'}
+                    className={isMobile ? 'text-xs' : ''}
+                  >
+                    Save Recipe
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => fileInputRef.current?.click()}
+                    size={isMobile ? 'sm' : 'default'}
+                    className={isMobile ? 'text-xs' : ''}
+                  >
+                    <Upload className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-1 md:mr-2`} />
+                    Import
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={exportToCSV}
+                    size={isMobile ? 'sm' : 'default'}
+                    className={isMobile ? 'text-xs' : ''}
+                  >
+                    <Download className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-1 md:mr-2`} />
+                    Export
+                  </Button>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -328,12 +363,12 @@ const FlavourEngine = () => {
               </div>
 
               {/* Main Recipe Development Interface */}
-              <div className="grid lg:grid-cols-6 gap-6">
-                <div className="lg:col-span-2">
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-6'} gap-4 md:gap-6`}>
+                <div className={isMobile ? 'order-1' : 'lg:col-span-2'}>
                   <RecipeInputs recipe={recipe} onUpdateRecipe={updateRecipe} />
                 </div>
                 
-                <div className="lg:col-span-2">
+                <div className={isMobile ? 'order-2' : 'lg:col-span-2'}>
                   <ChemistryAnalysis 
                     metrics={metrics} 
                     targets={targets} 
@@ -341,7 +376,7 @@ const FlavourEngine = () => {
                   />
                 </div>
                 
-                <div className="lg:col-span-2 space-y-6">
+                <div className={`${isMobile ? 'order-3' : 'lg:col-span-2'} space-y-4 md:space-y-6`}>
                   <ProductAnalysis 
                     productType={selectedProduct}
                     recipe={recipe}
@@ -357,7 +392,7 @@ const FlavourEngine = () => {
               </div>
 
               {/* Advanced Tools Row */}
-              <div className="grid lg:grid-cols-3 gap-6 mt-6">
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-4 md:gap-6 ${isMobile ? 'mt-4' : 'mt-6'}`}>
                 <SugarBlendOptimizer
                   productType={selectedProduct}
                   totalSugarAmount={totalSugarAmount}
@@ -371,20 +406,38 @@ const FlavourEngine = () => {
                   onAddIngredient={addIngredientToRecipe}
                 />
               </div>
+
+              {/* Mobile-specific help section */}
+              {isMobile && (
+                <Card className="mt-4 bg-blue-50">
+                  <CardContent className="p-3">
+                    <h3 className="font-semibold text-sm mb-2">Mobile AI Engine Tips:</h3>
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <p>• 🎯 Swipe between analysis sections for detailed insights</p>
+                      <p>• 🤖 AI optimization works in real-time across all parameters</p>
+                      <p>• 📊 All ML calculations run continuously in background</p>
+                      <p>• 💾 Save recipes locally and export for backup</p>
+                      <p>• 🔄 Switch product types to see parameter changes</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
-          <TabsContent value="database" className="mt-6">
+          <TabsContent value="database" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
             <DatabaseManager />
           </TabsContent>
 
-          <TabsContent value="analytics" className="mt-6">
-            <div className="text-center py-12">
-              <Database className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">Performance Analytics</h3>
-              <p className="text-gray-500">Detailed analytics dashboard coming soon...</p>
-            </div>
-          </TabsContent>
+          {!isMobile && (
+            <TabsContent value="analytics" className="mt-6">
+              <div className="text-center py-12">
+                <Database className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">Performance Analytics</h3>
+                <p className="text-gray-500">Detailed analytics dashboard coming soon...</p>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </CardContent>
     </Card>
