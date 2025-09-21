@@ -11,7 +11,7 @@ export const calculateRecipeMetrics = (
   let totalMSNF = 0;
   let totalPAC = 0;
   let totalPOD = 0;
-  let totalAFP = 0;
+  let totalSP = 0;
   let totalCost = 0;
 
   Object.entries(recipe).forEach(([ingredientName, amount]) => {
@@ -22,7 +22,7 @@ export const calculateRecipeMetrics = (
       totalMSNF += (ingredient.msnf * amount) / 100;
       totalPAC += (ingredient.pac * amount) / 100;
       totalPOD += (ingredient.pod * amount) / 100;
-      totalAFP += (ingredient.afp * amount) / 100;
+      totalSP += (ingredient.sp * amount) / 100;
       totalCost += ingredient.cost * ratio;
     }
   });

@@ -86,7 +86,7 @@ const FlavourEngine = () => {
       name: ing.name,
       pac: ing.pac,
       pod: ing.pod,
-      afp: ing.afp,
+      sp: ing.afp || 1.0, // Use AFP as SP for now, or default to 1.0
       fat: ing.fat,
       msnf: ing.msnf,
       cost: ing.cost,
@@ -206,30 +206,30 @@ const FlavourEngine = () => {
 
   const exportToCSV = () => {
     const validation = productParametersService.validateRecipeForProduct(recipe, selectedProduct);
-    const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
-    
-    const csvContent = [
-      ['Recipe Name', currentRecipeName],
-      ['Product Type', selectedProduct.toUpperCase()],
-      ['AFP (Sugars)', afpSp.afp.toFixed(2)],
-      ['SP', afpSp.sp.toFixed(2)],
-      ['Validation Status', validation.isValid ? 'COMPLIANT' : 'NEEDS ADJUSTMENT'],
-      [''],
-      ['Ingredient', 'Amount (g/ml)', 'PAC (%)', 'POD (%)', 'AFP (%)', 'Fat (%)', 'MSNF (%)', 'Cost (₹/kg)'],
-      ...Object.entries(recipe).map(([name, amount]) => {
-        const ingredient = ingredients.find(ing => ing.name === name);
-        return [
-          name,
-          amount,
-          ingredient?.pac || 0,
-          ingredient?.pod || 0,
-          ingredient?.afp || 0,
-          ingredient?.fat || 0,
-          ingredient?.msnf || 0,
-          ingredient?.cost || 0
-        ];
-      })
-    ].map(row => row.join(',')).join('\n');
+        const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
+        
+        const csvContent = [
+          ['Recipe Name', currentRecipeName],
+          ['Product Type', selectedProduct.toUpperCase()],
+          ['PAC (Sugars)', afpSp.afp.toFixed(2)],
+          ['SP', afpSp.sp.toFixed(2)],
+          ['Validation Status', validation.isValid ? 'COMPLIANT' : 'NEEDS ADJUSTMENT'],
+          [''],
+          ['Ingredient', 'Amount (g/ml)', 'PAC (%)', 'POD (%)', 'SP (%)', 'Fat (%)', 'MSNF (%)', 'Cost (₹/kg)'],
+          ...Object.entries(recipe).map(([name, amount]) => {
+            const ingredient = ingredients.find(ing => ing.name === name);
+            return [
+              name,
+              amount,
+              ingredient?.pac || 0,
+              ingredient?.pod || 0,
+              ingredient?.sp || 0,
+              ingredient?.fat || 0,
+              ingredient?.msnf || 0,
+              ingredient?.cost || 0
+            ];
+          })
+        ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

@@ -1,9 +1,9 @@
 
 export interface Ingredient {
   name: string;
-  pac: number; // Protein as Casein
+  pac: number; // PAC (Anti-freezing Power) - renamed from AFP
   pod: number; // Protein Other than Dairy
-  afp: number; // Anti-Freeze Protein
+  sp: number;  // Sweetness Power (relative to sucrose)
   fat: number;
   msnf: number; // Milk Solids Non-Fat
   cost: number;
