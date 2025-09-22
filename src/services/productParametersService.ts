@@ -1,5 +1,132 @@
 
-// Product-specific parameters and calculations based on your requirements
+import { ParameterSet, EffectiveParameters } from '@/types/parameters';
+import { loadProfileState, asEffective } from '@/lib/params';
+
+export interface SugarData {
+  name: string;
+  dryResidual: number;
+  spOnDryResidue: number;
+  afpOnDryResidue: number;
+  spOnTotal: number;
+  afpOnTotal: number;
+}
+
+export interface FlavoringData {
+  type: string;
+  characterizationRange: [number, number];
+  finalSugarsRange: [number, number];
+  afpSugarsRange: [number, number];
+}
+
+export interface ProductParameters {
+  sugar: [number, number];
+  fats: [number, number];
+  msnf: [number, number];
+  otherSolids: [number, number];
+  totalSolids: [number, number];
+  sp: [number, number];
+  afpSugars: [number, number];
+  churningSpeed?: [number, number]; // RPM
+  servingTemp?: [number, number]; // Celsius
+  overrun?: [number, number]; // Percentage
+}
+
+export interface SugarSpectrum {
+  disaccharides: [number, number]; // For taste, creaminess, consistency
+  monosaccharides: [number, number]; // For softness
+  polysaccharides: [number, number]; // For compactness, viscosity
+}
+
+export interface SorbetParameters {
+  fruitContent: {
+    weak: [number, number];
+    medium: [number, number];
+    strong: [number, number];
+  };
+  sugarContent: [number, number];
+  stabilizer: {
+    pulp: [number, number];
+    juice: [number, number];
+  };
+  lemonJuice: [number, number];
+}
+
+// ===== BASE defaults (sugar coeffs & process temps) =====
+const BASE: ParameterSet = {
+  id: 'base-defaults',
+  name: 'Base Defaults',
+  version: '1.0.0',
+  style: 'artisan',
+  bands: {},
+  sugar: {
+    sucrose: { sp: 1.00, pac: 1.00 },
+    dextrose: { sp: 0.74, pac: 1.90 },
+    fructose: { sp: 1.73, pac: 1.90 },
+    invert: { sp: 1.25, pac: 1.90 },
+    lactose: { sp: 0.16, pac: 1.00 },
+    glucose_de60: { sp: 0.50, pac: 1.18 },
+    honey: { sp: 1.30, pac: 1.46 },
+    corn_syrup: { sp: 0.33, pac: 1.90 },
+    maltodextrin: { sp: 0.20, pac: 0.30 },
+  },
+  process: {
+    entryTempC: [1, 4],
+    drawTempC: [-7, -5],
+    serveTempC: [-13, -11],
+    storeTempC: [-20, -18],
+  },
+  notes: ['Merge base; do not edit.']
+};
+
+// ===== your original MP-Artisan profile (kept intact) =====
+export const MP_ARTISAN_V2024: ParameterSet = {
+  id: 'mp-artisan-v2024',
+  name: 'MP-Artisan',
+  version: '2024.08',
+  style: 'artisan',
+  bands: {
+    ice_cream:      { ts:[37,46], fat:[10,20], sugar:[16,22], msnf:[7,12],  sp:[12,22], pac:[22,28] },
+    gelato_finished:{ ts:[32,40], fat:[6,12],  sugar:[18,24], msnf:[7,12],  sp:[12,22], pac:[22,28] },
+    sorbet:         { ts:[22,30], fat:[0,0],   sugar:[26,31], msnf:[0,0],   sp:[20,28], pac:[28,33] },
+    gelato_white:   { ts:[32,37], fat:[3,7],   sugar:[16,19], msnf:[7,12],  sp:[12,22], pac:[22,28] },
+    fruit_gelato:   { ts:[32,42], fat:[3,10],  sugar:[22,24], msnf:[3,7],   sp:[18,26], pac:[25,29] }
+  },
+  sugar: {}, // inherit BASE sugar coeffs
+  notes: ['Pinned to existing recipes for reproducibility.']
+};
+
+// ===== science profile (reference) =====
+export const SCIENCE_V2025: ParameterSet = {
+  id: 'science-v2025',
+  name: 'Science (Goff/Hartel)',
+  version: '2025.09',
+  style: 'science',
+  bands: {
+    ice_cream:      { ts:[36,42], fat:[10,20], sugar:[13,17], msnf:[7,12],  sp:[12,22], pac:[22,28], stabilizer:[0.2,0.5] },
+    gelato_white:   { ts:[36,43], fat:[4,8],   sugar:[16,22], msnf:[11,12], sp:[12,22], pac:[22,28], stabilizer:[0.3,0.6] },
+    gelato_finished:{ ts:[37,46], fat:[7,16],  sugar:[18,22], msnf:[7,12],  sp:[12,22], pac:[22,28], stabilizer:[0.3,0.6] },
+    fruit_gelato:   { ts:[32,42], fat:[3,10],  sugar:[22,24], msnf:[3,7],   sp:[18,26], pac:[25,29], stabilizer:[0.2,0.5] },
+    sorbet:         { ts:[32,42], fat:[0,0],   sugar:[26,31], msnf:[0,0],   sp:[20,28], pac:[28,33], stabilizer:[0.1,0.4], fruitPct:[35,75] }
+  },
+  sugar: {},
+  process: { ...BASE.process, overrunPct: [20, 50] },
+  notes: ['Science-backed checklist; optional.']
+};
+
+const PROFILES: Record<string, ParameterSet> = {
+  [MP_ARTISAN_V2024.id]: MP_ARTISAN_V2024,
+  [SCIENCE_V2025.id]: SCIENCE_V2025
+};
+
+export function listProfiles(): ParameterSet[] {
+  return Object.values(PROFILES);
+}
+
+export function getActiveParameters(): EffectiveParameters {
+  const state = loadProfileState();
+  const profile = PROFILES[state.activeProfileId] ?? MP_ARTISAN_V2024;
+  return asEffective(BASE, profile, state.userOverrides);
+}
 
 export type ProductType = 'ice-cream' | 'gelato' | 'sorbet';
 

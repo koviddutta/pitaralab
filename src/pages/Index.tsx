@@ -10,11 +10,15 @@ import FlavourEngine from "@/components/FlavourEngine";
 import MobileRecipeInput from "@/components/MobileRecipeInput";
 import { Card, CardContent } from "@/components/ui/card";
 import { Smartphone, Monitor } from "lucide-react";
+import { migratePinProfiles } from "@/lib/migratePinProfiles";
 
 const Index = () => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Initialize migrations
+    migratePinProfiles();
+    
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
