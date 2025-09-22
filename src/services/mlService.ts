@@ -65,7 +65,7 @@ export class MLService {
     };
   }
 
-  findSimilarIngredients(_: IngredientData): IngredientSimilarity[] { 
+  findSimilarIngredients(searchTerm: string, availableIngredients: string[]): IngredientSimilarity[] { 
     return [
       { ingredient: 'Similar ingredient 1', similarity: 0.8, reason: 'Similar category' },
       { ingredient: 'Similar ingredient 2', similarity: 0.6, reason: 'Similar function' }
