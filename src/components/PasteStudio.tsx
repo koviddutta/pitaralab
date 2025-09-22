@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Plus, Trash2, Beaker, Package, FileText, Download } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { pasteAdvisorService } from '@/services/pasteAdvisorService';
 import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import { useToast } from '@/hooks/use-toast';
+import { generateId } from '@/lib/utils';
 import type { PasteFormula, PreservationAdvice, PasteComponent } from '@/types/paste';
 import type { IngredientData } from '@/types/ingredients';
 
@@ -19,7 +20,7 @@ export default function PasteStudio() {
   const library = getSeedIngredients();
   
   const [paste, setPaste] = useState<PasteFormula>(() => ({
-    id: crypto.randomUUID(), 
+    id: generateId(), 
     name: 'New Paste', 
     category: 'mixed',
     components: [], 
@@ -51,7 +52,7 @@ export default function PasteStudio() {
     };
   }, [paste]);
 
-  const runAdvisor = () => {
+  const runAdvisor = useCallback(() => {
     const newAdvice = pasteAdvisorService.advise(composed, { 
       ambientPreferred: true, 
       particulate_mm: 3, 
@@ -62,11 +63,11 @@ export default function PasteStudio() {
       title: "Preservation Analysis Complete",
       description: `Found ${newAdvice.length} preservation methods for your paste.`
     });
-  };
+  }, [composed, toast]);
 
-  const addComponent = () => {
+  const addComponent = useCallback(() => {
     const newComponent: PasteComponent = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: '',
       grams: 100,
       water_pct: 0,
@@ -79,23 +80,23 @@ export default function PasteStudio() {
       ...p,
       components: [...p.components, newComponent]
     }));
-  };
+  }, []);
 
-  const updateComponent = (id: string, updates: Partial<PasteComponent>) => {
+  const updateComponent = useCallback((id: string, updates: Partial<PasteComponent>) => {
     setPaste(p => ({
       ...p,
       components: p.components.map(c => c.id === id ? { ...c, ...updates } : c)
     }));
-  };
+  }, []);
 
-  const removeComponent = (id: string) => {
+  const removeComponent = useCallback((id: string) => {
     setPaste(p => ({
       ...p,
       components: p.components.filter(c => c.id !== id)
     }));
-  };
+  }, []);
 
-  const loadFromIngredient = (componentId: string, ingredientName: string) => {
+  const loadFromIngredient = useCallback((componentId: string, ingredientName: string) => {
     const ingredient = library.find(i => i.name === ingredientName);
     if (ingredient) {
       updateComponent(componentId, {
@@ -107,7 +108,7 @@ export default function PasteStudio() {
         other_solids_pct: ingredient.other_solids_pct || 0
       });
     }
-  };
+  }, [library, updateComponent]);
 
   const exportAsIngredient = () => {
     toast({
@@ -126,19 +127,19 @@ export default function PasteStudio() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <main className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Paste Studio</h1>
             <p className="text-muted-foreground mt-1">Formulate → Preserve → Use authentic Indian flavor pastes</p>
           </div>
-          <Button onClick={runAdvisor} className="bg-gradient-primary text-primary-foreground shadow-elegant">
+          <Button onClick={runAdvisor} className="bg-gradient-primary text-primary-foreground shadow-elegant" aria-label="Run AI-powered preservation analysis">
             <Beaker className="h-4 w-4 mr-2" />
             Run Preservation Advisor
           </Button>
-        </div>
+        </header>
 
         <Tabs defaultValue="formulation" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -263,6 +264,7 @@ export default function PasteStudio() {
                           size="icon"
                           onClick={() => removeComponent(component.id)}
                           className="text-destructive hover:text-destructive"
+                          aria-label={`Remove ${component.name || 'component'}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -562,7 +564,7 @@ export default function PasteStudio() {
                           <div>Sugars: +{((composed.sugars_pct || 0) * percentage / 100).toFixed(1)}%</div>
                           <div>Fat: +{((composed.fat_pct * percentage) / 100).toFixed(1)}%</div>
                         </div>
-                        <Button variant="outline" size="sm" className="mt-3">
+                        <Button variant="outline" size="sm" className="mt-3" aria-label={`Auto-balance gelato base with ${percentage}% inclusion`}>
                           Auto-balance Base
                         </Button>
                       </Card>
@@ -574,6 +576,6 @@ export default function PasteStudio() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </main>
   );
 }

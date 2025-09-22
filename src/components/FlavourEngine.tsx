@@ -585,10 +585,11 @@ const FlavourEngine = () => {
           {isMobile && (
             <TabsContent value="tools" className="mt-3">
               <Tabs defaultValue="pairings" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsList className="grid w-full grid-cols-4 h-auto">
                   <TabsTrigger value="pairings" className="text-xs px-1 py-2">Pairings</TabsTrigger>
                   <TabsTrigger value="temperature" className="text-xs px-1 py-2">Temp</TabsTrigger>
                   <TabsTrigger value="reverse" className="text-xs px-1 py-2">Reverse</TabsTrigger>
+                  <TabsTrigger value="paste-studio" className="text-xs px-1 py-2">Paste</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="pairings" className="mt-3 space-y-3">
@@ -628,6 +629,10 @@ const FlavourEngine = () => {
 
                 <TabsContent value="reverse" className="mt-3">
                   <ReverseEngineer palette={availableIngredients} />
+                </TabsContent>
+
+                <TabsContent value="paste-studio" className="mt-3">
+                  <PasteStudio />
                 </TabsContent>
               </Tabs>
             </TabsContent>
