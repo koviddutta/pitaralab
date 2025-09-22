@@ -362,7 +362,7 @@ const FlavourEngine = () => {
 
       <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''} overflow-x-auto gap-1`}>
             <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2 py-2' : ''}>
               {isMobile ? 'Recipe' : 'Recipe Development'}
             </TabsTrigger>
