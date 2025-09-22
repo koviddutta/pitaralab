@@ -116,8 +116,8 @@ const SugarBlendOptimizer = ({ productType, totalSugarAmount, onOptimizedBlend }
         {/* Sugar Information */}
         <div className="text-xs text-gray-600 space-y-1">
           <div><strong>Disaccharides:</strong> Sucrose - for taste and creaminess</div>
-          <div><strong>Monosaccharides:</strong> Dextrose - for softness (High AFP)</div>
-          <div><strong>Polysaccharides:</strong> Glucose syrups - for viscosity (Low AFP)</div>
+          <div><strong>Monosaccharides:</strong> Dextrose - for softness (High PAC)</div>
+          <div><strong>Polysaccharides:</strong> Glucose syrups - for viscosity (Low PAC)</div>
         </div>
       </CardContent>
     </Card>

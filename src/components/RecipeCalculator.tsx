@@ -49,11 +49,11 @@ const RecipeCalculator = () => {
       try {
         const calculatedMetrics = mlService.calculateRecipeMetrics(recipe);
         const recipeValidation = productParametersService.validateRecipeForProduct(recipe, productType);
-        const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
+        const pacSp = productParametersService.calculateRecipeAfpSp(recipe);
         
         setMetrics({
           ...calculatedMetrics,
-          ...afpSp
+          ...pacSp
         });
         setValidation(recipeValidation);
       } catch (error) {
@@ -132,7 +132,7 @@ const RecipeCalculator = () => {
         predictions: {
           productType,
           validation,
-          afpSp: { afp: metrics.afp, sp: metrics.sp }
+          pacSp: { pac: metrics.pac, sp: metrics.sp }
         },
         notes: `${productType} recipe with ${Object.keys(recipe).length} ingredients`
       });
@@ -166,7 +166,7 @@ const RecipeCalculator = () => {
       ['Sugar %', `${metrics.sugarPercentage?.toFixed(2)}%`, '14-22%'],
       ['Fat %', `${metrics.fatPercentage?.toFixed(2)}%`, '10-20%'],
       ['Total Solids %', `${metrics.totalSolids?.toFixed(2)}%`, '32-42%'],
-      ['AFP', metrics.afp?.toFixed(2), '22-28'],
+      ['PAC (Anti-freezing Power)', metrics.pac?.toFixed(2), '22-28'],
       ['SP', metrics.sp?.toFixed(2), '12-22']
     ].map(row => row.join(',')).join('\n');
 
@@ -443,11 +443,11 @@ const RecipeCalculator = () => {
                 </div>
               </div>
 
-              {/* AFP & SP */}
+              {/* PAC & SP */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-sm">AFP</div>
-                  <div className="font-medium text-lg">{metrics.afp?.toFixed(1) || 0}</div>
+                  <div className="text-sm">PAC (aka AFP)</div>
+                  <div className="font-medium text-lg">{metrics.pac?.toFixed(1) || 0}</div>
                 </div>
                 <div>
                   <div className="text-sm">SP</div>

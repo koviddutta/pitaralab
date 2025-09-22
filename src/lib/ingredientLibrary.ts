@@ -236,3 +236,7 @@ export const classifySugarType = (ingredient: IngredientData): 'disaccharide' | 
   if (ingredient.name.toLowerCase().includes('glucose') || ingredient.name.toLowerCase().includes('syrup')) return 'polysaccharide';
   return 'other';
 };
+
+export function getSeedIngredients(): IngredientData[] {
+  return DEFAULT_INGREDIENTS;
+}

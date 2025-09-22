@@ -7,13 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { databaseService, IngredientData } from '@/services/databaseService';
 import { mlService } from '@/services/mlService';
+import { getSeedIngredients } from '@/lib/ingredientLibrary';
+import { IngredientData as NewIngredientData } from '@/types/ingredients';
 
 const DatabaseManager = () => {
   const { toast } = useToast();
+  const [tab, setTab] = useState<'all'|'dairy'|'sugar'|'fruit'|'stabilizer'|'flavor'|'fat'|'other'>('all');
   const [ingredients, setIngredients] = useState<IngredientData[]>([]);
+  const [newIngredients, setNewIngredients] = useState<IngredientData[]>(getSeedIngredients());
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newIngredient, setNewIngredient] = useState({
@@ -138,7 +143,8 @@ const DatabaseManager = () => {
     }
   };
 
-  const categories = ['dairy', 'sweetener', 'protein', 'additive', 'flavoring', 'spice', 'fruit', 'nut'];
+  const categories = ['all', 'dairy', 'sugar', 'fruit', 'stabilizer', 'flavor', 'fat', 'other'];
+  const filteredNewIngredients = newIngredients.filter(i => tab === 'all' ? true : i.category === tab);
 
   return (
     <div className="space-y-6">
@@ -256,7 +262,45 @@ const DatabaseManager = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <Tabs value={tab} onValueChange={(value) => setTab(value as any)}>
+            <TabsList className="grid grid-cols-4 lg:grid-cols-8">
+              {categories.map(cat => (
+                <TabsTrigger key={cat} value={cat} className="text-xs">
+                  {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            <div className="mt-4 space-y-4">
+              {/* New Ingredient Schema Display */}
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Enhanced Ingredient Library ({filteredNewIngredients.length})</h3>
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {filteredNewIngredients.map((ingredient) => (
+                    <div key={ingredient.id} className="flex items-center justify-between p-2 border rounded text-sm">
+                      <div className="flex-1">
+                        <span className="font-medium">{ingredient.name}</span>
+                        <div className="text-xs text-gray-500 flex gap-4">
+                          <span>Water: {ingredient.water_pct}%</span>
+                          {ingredient.sugars_pct && <span>Sugar: {ingredient.sugars_pct}%</span>}
+                          <span>Fat: {ingredient.fat_pct}%</span>
+                          {ingredient.msnf_pct && <span>MSNF: {ingredient.msnf_pct}%</span>}
+                          {ingredient.other_solids_pct && <span>Other: {ingredient.other_solids_pct}%</span>}
+                        </div>
+                        {ingredient.category === 'fruit' && ingredient.brix_estimate && (
+                          <div className="text-xs text-purple-600">Brix: {ingredient.brix_estimate}°</div>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="ml-2">{ingredient.category}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Legacy Ingredients */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">Legacy Database ({ingredients.length})</h3>
+            
             {/* Add New Ingredient Form */}
             {isAddingIngredient && (
               <Card className="border-dashed">
@@ -371,8 +415,10 @@ const DatabaseManager = () => {
                   </div>
                 </div>
               ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

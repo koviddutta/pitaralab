@@ -14,7 +14,7 @@ interface ProductAnalysisProps {
 const ProductAnalysis = ({ productType, recipe }: ProductAnalysisProps) => {
   const validation = productParametersService.validateRecipeForProduct(recipe, productType);
   const recommendations = productParametersService.generateProductRecommendations(productType, recipe);
-  const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
+  const pacSp = productParametersService.calculateRecipeAfpSp(recipe);
   const parameters = productParametersService.getProductParameters(productType);
 
   const getProductColor = (productType: ProductType) => {
@@ -71,17 +71,17 @@ const ProductAnalysis = ({ productType, recipe }: ProductAnalysisProps) => {
           </div>
         </div>
 
-        {/* AFP and SP Values */}
+        {/* PAC and SP Values */}
         <div className="space-y-2">
           <h4 className="font-semibold text-sm text-gray-700">Calculated Values</h4>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex justify-between">
-              <span>AFP (Sugars):</span>
-              <Badge variant="outline">{afpSp.afp.toFixed(2)}</Badge>
+              <span>PAC (Anti-freezing Power):</span>
+              <Badge variant="outline">{pacSp.afp.toFixed(2)}</Badge>
             </div>
             <div className="flex justify-between">
               <span>SP:</span>
-              <Badge variant="outline">{afpSp.sp.toFixed(2)}</Badge>
+              <Badge variant="outline">{pacSp.sp.toFixed(2)}</Badge>
             </div>
           </div>
         </div>

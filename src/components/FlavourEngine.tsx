@@ -18,6 +18,14 @@ import ProductAnalysis from './flavour-engine/ProductAnalysis';
 import SugarBlendOptimizer from './flavour-engine/SugarBlendOptimizer';
 import { databaseService } from '@/services/databaseService';
 import { productParametersService } from '@/services/productParametersService';
+import ProfileSwitcher from './ProfileSwitcher';
+import TargetPanel from './TargetPanel';
+import ScienceChecklist from './ScienceChecklist';
+import ReverseEngineer from './ReverseEngineer';
+import BatchQA from './BatchQA';
+import UnitConverterAdvanced from './flavour-engine/UnitConverterAdvanced';
+import SugarSpectrumToggle from './flavour-engine/SugarSpectrumToggle';
+import OptimizationEngine from './flavour-engine/OptimizationEngine';
 
 const FlavourEngine = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,7 +94,7 @@ const FlavourEngine = () => {
       name: ing.name,
       pac: ing.pac,
       pod: ing.pod,
-      sp: ing.afp || 1.0, // Use AFP as SP for now, or default to 1.0
+      sp: ing.pac || 1.0, // Use PAC as SP for now, or default to 1.0
       fat: ing.fat,
       msnf: ing.msnf,
       cost: ing.cost,
@@ -184,7 +192,7 @@ const FlavourEngine = () => {
         predictions: {
           productType: selectedProduct,
           validation: validation,
-          afpSp: productParametersService.calculateRecipeAfpSp(recipe)
+          pacSp: productParametersService.calculateRecipeAfpSp(recipe)
         },
         notes: `${selectedProduct} recipe created with ${Object.keys(recipe).length} ingredients. ${validation.isValid ? 'Compliant' : 'Needs adjustment'}.`
       });
@@ -206,13 +214,13 @@ const FlavourEngine = () => {
 
   const exportToCSV = () => {
     const validation = productParametersService.validateRecipeForProduct(recipe, selectedProduct);
-        const afpSp = productParametersService.calculateRecipeAfpSp(recipe);
+        const pacSp = productParametersService.calculateRecipeAfpSp(recipe);
         
         const csvContent = [
           ['Recipe Name', currentRecipeName],
           ['Product Type', selectedProduct.toUpperCase()],
-          ['PAC (Sugars)', afpSp.afp.toFixed(2)],
-          ['SP', afpSp.sp.toFixed(2)],
+          ['PAC (Anti-freezing Power)', pacSp.afp.toFixed(2)],
+          ['SP', pacSp.sp.toFixed(2)],
           ['Validation Status', validation.isValid ? 'COMPLIANT' : 'NEEDS ADJUSTMENT'],
           [''],
           ['Ingredient', 'Amount (g/ml)', 'PAC (%)', 'POD (%)', 'SP (%)', 'Fat (%)', 'MSNF (%)', 'Cost (₹/kg)'],
@@ -279,6 +287,7 @@ const FlavourEngine = () => {
             <Brain className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-white`} />
           </div>
           <span className="flex-1">AI Flavour Engine</span>
+          <ProfileSwitcher />
           <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-purple-600 animate-pulse`} />
           {isMobile ? (
             <Smartphone className="h-4 w-4 text-gray-500" />
@@ -296,9 +305,15 @@ const FlavourEngine = () => {
 
       <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'}`}>
             <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2' : ''}>
               {isMobile ? 'Recipe' : 'Recipe Development'}
+            </TabsTrigger>
+            <TabsTrigger value="targets" className={isMobile ? 'text-xs px-2' : ''}>
+              {isMobile ? 'Targets' : 'Target & Validation'}
+            </TabsTrigger>
+            <TabsTrigger value="reverse" className={isMobile ? 'text-xs px-2' : ''}>
+              {isMobile ? 'Reverse' : 'Reverse Engineer (β)'}
             </TabsTrigger>
             <TabsTrigger value="database" className={isMobile ? 'text-xs px-2' : ''}>
               {isMobile ? 'Database' : 'Database Management'}
@@ -393,6 +408,31 @@ const FlavourEngine = () => {
 
               {/* Advanced Tools Row */}
               <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-4 md:gap-6 ${isMobile ? 'mt-4' : 'mt-6'}`}>
+                <SugarSpectrumToggle
+                  recipe={recipe}
+                  onRecipeUpdate={setRecipe}
+                  locks={{}}
+                />
+                
+                <UnitConverterAdvanced 
+                  onEvaporationChange={(pct) => console.log('Evaporation:', pct)}
+                  evaporationPct={0}
+                  onMilkFatChange={(pct) => console.log('Milk fat:', pct)}
+                  milkFatPct={3}
+                  onCreamFatChange={(pct) => console.log('Cream fat:', pct)}
+                  creamFatPct={25}
+                />
+                
+                <OptimizationEngine
+                  recipe={recipe}
+                  targets={targets}
+                  onRecipeUpdate={setRecipe}
+                  onClassificationChange={(classification) => console.log('Classification:', classification)}
+                />
+              </div>
+
+              {/* Enhanced Tools Row */}
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-4 md:gap-6 ${isMobile ? 'mt-4' : 'mt-6'}`}>
                 <SugarBlendOptimizer
                   productType={selectedProduct}
                   totalSugarAmount={totalSugarAmount}
@@ -423,6 +463,42 @@ const FlavourEngine = () => {
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="targets" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-4 md:gap-6`}>
+              <TargetPanel 
+                productType="gelato_finished"
+                metrics={{
+                  ts_add_pct: metrics.totalSolids,
+                  fat_pct: metrics.fat,
+                  sugars_pct: metrics.sweetness,
+                  msnf_pct: metrics.msnf,
+                  sp: metrics.sweetness,
+                  pac: metrics.pac
+                }}
+                onOptimize={() => handleAutoOptimize()}
+              />
+              <ScienceChecklist
+                productType="gelato_finished"
+                metrics={{
+                  ts_add_pct: metrics.totalSolids,
+                  fat_pct: metrics.fat,
+                  sugars_pct: metrics.sweetness,
+                  msnf_pct: metrics.msnf,
+                  sp: metrics.sweetness,
+                  pac: metrics.pac
+                }}
+                stabilizerPct={0.5}
+              />
+            </div>
+            <div className="mt-6">
+              <BatchQA onPrint={() => window.print()} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reverse" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
+            <ReverseEngineer palette={ingredients} />
           </TabsContent>
 
           <TabsContent value="database" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
