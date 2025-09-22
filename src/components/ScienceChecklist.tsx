@@ -12,7 +12,15 @@ export default function ScienceChecklist({
   fruitPct?: number;
 }) {
   const p = getActiveParameters();
-  const b = p.bands[productType]!;
+  const b = p.bands[productType];
+  if (!b) {
+    return (
+      <div className="rounded-xl border p-3 space-y-2">
+        <div className="font-semibold">Science Checklist</div>
+        <div className="text-xs opacity-70">No checklist bands defined for this product/profile.</div>
+      </div>
+    );
+  }
   const row = (label:string, val:number, r:[number,number]) => {
     const pass = val>=r[0] && val<=r[1];
     const near = !pass && (Math.abs(val - (val<r[0]?r[0]:r[1])) <= (0.05*(r[1]-r[0])));

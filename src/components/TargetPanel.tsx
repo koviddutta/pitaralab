@@ -14,7 +14,15 @@ function Chip({label, val, r}:{label:string; val:number; r:[number,number]}) {
 
 export default function TargetPanel({ productType, metrics, onOptimize }: Props) {
   const p = getActiveParameters();
-  const band = p.bands[productType]!;
+  const band = p.bands[productType];
+  if (!band) {
+    return (
+      <div className="space-y-2">
+        <div className="font-semibold">Targets</div>
+        <div className="text-xs opacity-70">No target bands defined for this product/profile.</div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-2">
       <div className="font-semibold">Targets</div>

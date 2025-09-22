@@ -179,6 +179,12 @@ const FlavourEngine = () => {
     water_pct: 0, other_pct: 0, ts_add_g: 0, ts_mass_g: 0, ts_mass_pct: 0
   };
 
+  // Map UI product to parameter profile key
+  const paramProduct: 'ice_cream'|'gelato_white'|'gelato_finished'|'fruit_gelato'|'sorbet' =
+    selectedProduct === 'ice-cream' ? 'ice_cream' :
+    selectedProduct === 'gelato'    ? 'gelato_finished' :
+                                      'sorbet';
+
   const metrics = calculateRecipeMetrics(recipe, ingredients);
   const targetResults = checkTargets(metrics, targets);
   const allTargetsMet = Object.values(targetResults).every(result => result);
@@ -535,12 +541,12 @@ const FlavourEngine = () => {
               {isMobile ? (
                 <div className="space-y-3">
                   <TargetPanel 
-                    productType={selectedProduct as any}
+                    productType={paramProduct}
                     metrics={modernMetrics}
                     onOptimize={handleAutoOptimize}
                   />
                   <ScienceChecklist
-                    productType={selectedProduct as any}
+                    productType={paramProduct}
                     metrics={modernMetrics}
                   />
                   <MachineSelector
@@ -551,22 +557,22 @@ const FlavourEngine = () => {
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <TargetPanel 
-                      productType={selectedProduct as any}
-                      metrics={modernMetrics}
-                      onOptimize={handleAutoOptimize}
-                    />
-                    <MachineSelector
-                      metrics={modernMetrics}
-                      selectedMachine={selectedMachine}
-                      onMachineChange={setSelectedMachine}
-                    />
-                  </div>
-                  <ScienceChecklist
-                    productType={selectedProduct as any}
+                <div className="space-y-4">
+                  <TargetPanel 
+                    productType={paramProduct}
                     metrics={modernMetrics}
+                    onOptimize={handleAutoOptimize}
                   />
+                  <MachineSelector
+                    metrics={modernMetrics}
+                    selectedMachine={selectedMachine}
+                    onMachineChange={setSelectedMachine}
+                  />
+                </div>
+                <ScienceChecklist
+                  productType={paramProduct}
+                  metrics={modernMetrics}
+                />
                 </div>
               )}
               <BatchQA onPrint={() => window.print()} />
