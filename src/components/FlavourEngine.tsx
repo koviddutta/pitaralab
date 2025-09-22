@@ -32,6 +32,7 @@ import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import UnitConverterAdvanced from './flavour-engine/UnitConverterAdvanced';
 import SugarSpectrumToggle from './flavour-engine/SugarSpectrumToggle';
 import OptimizationEngine from './flavour-engine/OptimizationEngine';
+import PasteStudio from './PasteStudio';
 
 const FlavourEngine = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -368,7 +369,7 @@ const FlavourEngine = () => {
 
       <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''} overflow-x-auto gap-1`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-7'} ${isMobile ? 'h-auto' : ''} overflow-x-auto gap-1`}>
             <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2 py-2' : ''}>
               {isMobile ? 'Recipe' : 'Recipe Development'}
             </TabsTrigger>
@@ -389,6 +390,7 @@ const FlavourEngine = () => {
                 <TabsTrigger value="pairings">Flavor Pairings</TabsTrigger>
                 <TabsTrigger value="temperature">Temperature</TabsTrigger>
                 <TabsTrigger value="reverse">Reverse Engineer</TabsTrigger>
+                <TabsTrigger value="paste-studio">Paste Studio</TabsTrigger>
                 <TabsTrigger value="database">Database</TabsTrigger>
               </>
             )}
@@ -676,6 +678,10 @@ const FlavourEngine = () => {
 
           <TabsContent value="reverse" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
             <ReverseEngineer palette={availableIngredients} />
+          </TabsContent>
+
+          <TabsContent value="paste-studio" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
+            <PasteStudio />
           </TabsContent>
 
           <TabsContent value="database" className={`${isMobile ? 'mt-3' : 'mt-6'}`}>
