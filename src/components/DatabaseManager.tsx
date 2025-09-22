@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { databaseService, IngredientData } from '@/services/databaseService';
+import { databaseService, IngredientData as LegacyIngredientData } from '@/services/databaseService';
 import { mlService } from '@/services/mlService';
 import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import { IngredientData as NewIngredientData } from '@/types/ingredients';
@@ -17,8 +17,8 @@ import { IngredientData as NewIngredientData } from '@/types/ingredients';
 const DatabaseManager = () => {
   const { toast } = useToast();
   const [tab, setTab] = useState<'all'|'dairy'|'sugar'|'fruit'|'stabilizer'|'flavor'|'fat'|'other'>('all');
-  const [ingredients, setIngredients] = useState<IngredientData[]>([]);
-  const [newIngredients, setNewIngredients] = useState<IngredientData[]>(getSeedIngredients());
+  const [ingredients, setIngredients] = useState<LegacyIngredientData[]>([]);
+  const [newIngredients, setNewIngredients] = useState<NewIngredientData[]>(getSeedIngredients());
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newIngredient, setNewIngredient] = useState({
@@ -90,7 +90,7 @@ const DatabaseManager = () => {
     }
   };
 
-  const handleUpdateIngredient = (id: string, updates: Partial<IngredientData>) => {
+  const handleUpdateIngredient = (id: string, updates: Partial<LegacyIngredientData>) => {
     const updated = databaseService.updateIngredient(id, updates);
     if (updated) {
       setIngredients(prev => prev.map(ing => ing.id === id ? updated : ing));
