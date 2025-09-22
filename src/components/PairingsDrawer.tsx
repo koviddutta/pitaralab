@@ -28,6 +28,8 @@ export default function PairingsDrawer({
     classic: []
   });
 
+  const isMobile = window.innerWidth < 768;
+
   const analyzePairings = async () => {
     if (!selectedIngredient) return;
     
@@ -93,25 +95,28 @@ export default function PairingsDrawer({
 
   if (!selectedIngredient) {
     return (
-      <Card className="p-4">
+      <Card className={isMobile ? 'p-3' : 'p-4'}>
         <div className="text-center text-slate-500">
-          <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p>Select an ingredient to discover pairings</p>
+          <Sparkles className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} mx-auto mb-2 opacity-50`} />
+          <p className={isMobile ? 'text-sm' : ''}>Select an ingredient to discover pairings</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-4">
-      <div className="space-y-4">
+    <Card className={isMobile ? 'p-3' : 'p-4'}>
+      <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Flavor Pairings for {selectedIngredient.name}</h3>
+          <h3 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
+            {isMobile ? `Pairings: ${selectedIngredient.name}` : `Flavor Pairings for ${selectedIngredient.name}`}
+          </h3>
           <Button 
             onClick={analyzePairings} 
             disabled={isAnalyzing}
             size="sm"
             variant="outline"
+            className={isMobile ? 'text-xs' : ''}
           >
             {isAnalyzing ? 'Analyzing...' : 'Find Pairings'}
           </Button>

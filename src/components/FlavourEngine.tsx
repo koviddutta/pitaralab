@@ -23,6 +23,12 @@ import TargetPanel from './TargetPanel';
 import ScienceChecklist from './ScienceChecklist';
 import ReverseEngineer from './ReverseEngineer';
 import BatchQA from './BatchQA';
+import PairingsDrawer from './PairingsDrawer';
+import TemperaturePanel from './TemperaturePanel';
+import MachineSelector from './MachineSelector';
+import { IngredientData } from '@/types/ingredients';
+import { calcMetrics } from '@/lib/calc';
+import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import UnitConverterAdvanced from './flavour-engine/UnitConverterAdvanced';
 import SugarSpectrumToggle from './flavour-engine/SugarSpectrumToggle';
 import OptimizationEngine from './flavour-engine/OptimizationEngine';
@@ -34,6 +40,9 @@ const FlavourEngine = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductType>('ice-cream');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [availableIngredients, setAvailableIngredients] = useState<IngredientData[]>([]);
+  const [selectedIngredientForPairing, setSelectedIngredientForPairing] = useState<IngredientData | null>(null);
+  const [selectedMachine, setSelectedMachine] = useState<'batch' | 'continuous'>('batch');
   const [recipe, setRecipe] = useState<{[key: string]: number}>({
     'Heavy Cream': 500,
     'Whole Milk': 250,
@@ -101,6 +110,10 @@ const FlavourEngine = () => {
       confidence: ing.confidence
     }));
     setIngredients(formattedIngredients);
+    
+    // Also set modern ingredient format for new components
+    const seedIngredients = getSeedIngredients();
+    setAvailableIngredients(seedIngredients);
   }, []);
 
   const addIngredientToRecipe = (ingredientName: string) => {
@@ -120,6 +133,50 @@ const FlavourEngine = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const addIngredientWithPercentage = (ingredient: IngredientData, percentage: number) => {
+    const totalCurrentMass = Object.values(recipe).reduce((sum, val) => sum + val, 0) || 1000;
+    const gramsToAdd = (percentage / 100) * totalCurrentMass;
+    setRecipe(prev => ({ ...prev, [ingredient.name]: (prev[ingredient.name] || 0) + gramsToAdd }));
+    
+    toast({
+      title: "Pairing Added",
+      description: `${ingredient.name} added at ${percentage}% (${gramsToAdd.toFixed(0)}g)`,
+    });
+  };
+
+  const handleApplyTuning = (tunedRecipe: any[]) => {
+    const newRecipe: { [key: string]: number } = {};
+    tunedRecipe.forEach((row: any) => {
+      if (row.grams > 0) {
+        newRecipe[row.ing.name] = row.grams;
+      }
+    });
+    setRecipe(newRecipe);
+    
+    toast({
+      title: "Auto-tune Applied",
+      description: "Recipe optimized for target temperature",
+    });
+  };
+
+  // Convert recipe to modern format for new components
+  const modernRecipeRows = Object.entries(recipe).map(([name, grams]) => {
+    const ing = availableIngredients.find(i => i.name === name) || {
+      id: name.toLowerCase().replace(/\s+/g, '_'),
+      name,
+      category: 'other' as const,
+      water_pct: 0,
+      fat_pct: 0,
+    };
+    return { ing, grams };
+  });
+
+  const modernMetrics = modernRecipeRows.length > 0 ? calcMetrics(modernRecipeRows) : {
+    ts_add_pct: 0, fat_pct: 0, sugars_pct: 0, msnf_pct: 0, sp: 0, pac: 0,
+    total_g: 0, water_g: 0, sugars_g: 0, fat_g: 0, msnf_g: 0, other_g: 0,
+    water_pct: 0, other_pct: 0, ts_add_g: 0, ts_mass_g: 0, ts_mass_pct: 0
   };
 
   const metrics = calculateRecipeMetrics(recipe, ingredients);
@@ -305,21 +362,29 @@ const FlavourEngine = () => {
 
       <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'}`}>
-            <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2' : ''}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''}`}>
+            <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2 py-2' : ''}>
               {isMobile ? 'Recipe' : 'Recipe Development'}
             </TabsTrigger>
-            <TabsTrigger value="targets" className={isMobile ? 'text-xs px-2' : ''}>
+            <TabsTrigger value="targets" className={isMobile ? 'text-xs px-2 py-2' : ''}>
               {isMobile ? 'Targets' : 'Target & Validation'}
             </TabsTrigger>
-            <TabsTrigger value="reverse" className={isMobile ? 'text-xs px-2' : ''}>
-              {isMobile ? 'Reverse' : 'Reverse Engineer (β)'}
-            </TabsTrigger>
-            <TabsTrigger value="database" className={isMobile ? 'text-xs px-2' : ''}>
-              {isMobile ? 'Database' : 'Database Management'}
-            </TabsTrigger>
-            {!isMobile && (
-              <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
+            {isMobile ? (
+              <>
+                <TabsTrigger value="tools" className="text-xs px-2 py-2">
+                  Tools
+                </TabsTrigger>
+                <TabsTrigger value="database" className="text-xs px-2 py-2">
+                  Database
+                </TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger value="pairings">Flavor Pairings</TabsTrigger>
+                <TabsTrigger value="temperature">Temperature</TabsTrigger>
+                <TabsTrigger value="reverse">Reverse Engineer</TabsTrigger>
+                <TabsTrigger value="database">Database</TabsTrigger>
+              </>
             )}
           </TabsList>
 

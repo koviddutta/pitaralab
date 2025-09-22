@@ -24,6 +24,7 @@ export default function TemperaturePanel({
   const [tuningPreview, setTuningPreview] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  const isMobile = window.innerWidth < 768;
   const advice = recommendTemps(metrics);
   const guidance = getTemperatureGuidance(metrics);
 
@@ -62,20 +63,22 @@ export default function TemperaturePanel({
   };
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`${isMobile ? 'p-3 space-y-3' : 'p-4 space-y-4'}`}>
       <div className="flex items-center gap-2">
-        <Thermometer className="h-5 w-5" />
-        <h3 className="font-semibold">Temperature & Scoopability</h3>
+        <Thermometer className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
+        <h3 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
+          {isMobile ? 'Temperature' : 'Temperature & Scoopability'}
+        </h3>
       </div>
 
       {/* Current recommendations */}
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Snowflake className="h-4 w-4 text-blue-500" />
-            <span className="text-sm font-medium">Recommended Serving</span>
+            <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Recommended Serving</span>
           </div>
-          <div className="text-2xl font-bold">{advice.serveTempC.toFixed(1)}°C</div>
+          <div className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>{advice.serveTempC.toFixed(1)}°C</div>
           <Badge className={getHardnessColor(advice.hardness)}>
             {advice.hardness.replace('_', ' ')}
           </Badge>
@@ -84,10 +87,10 @@ export default function TemperaturePanel({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Snowflake className="h-4 w-4 text-slate-500" />
-            <span className="text-sm font-medium">Storage</span>
+            <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Storage</span>
           </div>
-          <div className="text-2xl font-bold">{advice.storeTempC}°C</div>
-          <div className="text-xs text-slate-600">
+          <div className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>{advice.storeTempC}°C</div>
+          <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-600`}>
             {advice.frozenWaterAtServe_pct.toFixed(1)}% frozen water at serve
           </div>
         </div>

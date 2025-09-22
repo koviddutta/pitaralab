@@ -19,6 +19,7 @@ export default function MachineSelector({
 }: MachineSelectorProps) {
   const [machine, setMachine] = useState<'batch' | 'continuous'>(selectedMachine);
 
+  const isMobile = window.innerWidth < 768;
   const currentMachine = MACHINES[machine];
   const settings = getOptimalMachineSettings(metrics, machine);
   const validation = validateForMachine(metrics, machine);
@@ -29,10 +30,10 @@ export default function MachineSelector({
   };
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`${isMobile ? 'p-3 space-y-3' : 'p-4 space-y-4'}`}>
       <div className="flex items-center gap-2">
-        <Settings className="h-5 w-5" />
-        <h3 className="font-semibold">Machine Profile</h3>
+        <Settings className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
+        <h3 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>Machine Profile</h3>
       </div>
 
       {/* Machine selector */}
