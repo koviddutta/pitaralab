@@ -344,13 +344,15 @@ const FlavourEngine = () => {
     .reduce((sum, [, amount]) => sum + amount, 0);
 
   return (
-    <Card className="w-full max-w-7xl mx-auto shadow-xl">
-      <CardHeader className="gradient-card border-b">
+    <Card className="w-full max-w-7xl mx-auto shadow-elegant">
+      <CardHeader className="gradient-card border-b border-border/50">
         <CardTitle className={`flex items-center gap-2 md:gap-3 ${isMobile ? 'text-lg' : 'text-2xl'} flex-wrap`}>
-          <div className="p-2 gradient-primary rounded-lg shadow-glow">
+          <div className="p-2 gradient-primary rounded-lg shadow-glow animate-smooth">
             <Brain className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-primary-foreground`} />
           </div>
-          <span className="flex-1">AI Flavour Engine</span>
+          <span className="flex-1 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold">
+            AI Flavour Engine
+          </span>
           <ProfileSwitcher />
           <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary animate-pulse`} />
           {isMobile ? (
@@ -358,40 +360,46 @@ const FlavourEngine = () => {
           ) : (
             <Monitor className="h-4 w-4 text-muted-foreground" />
           )}
-          <div className={`px-2 md:px-3 py-1 bg-gradient-to-r from-green-500 to-teal-500 text-white ${isMobile ? 'text-xs' : 'text-sm'} rounded-full`}>
+          <div className={`px-2 md:px-3 py-1 gradient-accent text-accent-foreground ${isMobile ? 'text-xs' : 'text-sm'} rounded-full font-semibold shadow-sm`}>
             ML Powered v2.0
           </div>
         </CardTitle>
-        <CardDescription className={`${isMobile ? 'text-sm' : 'text-lg'}`}>
+        <CardDescription className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>
           Advanced machine learning for ice cream, gelato, and sorbet recipe optimization with product-specific parameters and predictive analysis
         </CardDescription>
       </CardHeader>
 
-      <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
+      <CardContent className={`${isMobile ? 'p-3' : 'p-6'} bg-gradient-to-br from-background to-card-secondary/30`}>
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-7'} ${isMobile ? 'h-auto' : ''} overflow-x-auto gap-1`}>
-            <TabsTrigger value="recipe" className={isMobile ? 'text-xs px-2 py-2' : ''}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-7'} ${isMobile ? 'h-auto' : 'h-12'} gap-1 bg-card-secondary/50 backdrop-blur-sm`}>
+            <TabsTrigger 
+              value="recipe" 
+              className={`${isMobile ? 'text-xs px-2 py-2' : 'px-4 py-2'} data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth`}
+            >
               {isMobile ? 'Recipe' : 'Recipe Development'}
             </TabsTrigger>
-            <TabsTrigger value="targets" className={isMobile ? 'text-xs px-2 py-2' : ''}>
+            <TabsTrigger 
+              value="targets" 
+              className={`${isMobile ? 'text-xs px-2 py-2' : 'px-4 py-2'} data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth`}
+            >
               {isMobile ? 'Targets' : 'Target & Validation'}
             </TabsTrigger>
             {isMobile ? (
               <>
-                <TabsTrigger value="tools" className="text-xs px-2 py-2">
+                <TabsTrigger value="tools" className="text-xs px-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">
                   Tools
                 </TabsTrigger>
-                <TabsTrigger value="database" className="text-xs px-2 py-2">
+                <TabsTrigger value="database" className="text-xs px-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">
                   Database
                 </TabsTrigger>
               </>
             ) : (
               <>
-                <TabsTrigger value="pairings">Flavor Pairings</TabsTrigger>
-                <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                <TabsTrigger value="reverse">Reverse Engineer</TabsTrigger>
-                <TabsTrigger value="paste-studio">Paste Studio</TabsTrigger>
-                <TabsTrigger value="database">Database</TabsTrigger>
+                <TabsTrigger value="pairings" className="px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">Flavor Pairings</TabsTrigger>
+                <TabsTrigger value="temperature" className="px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">Temperature</TabsTrigger>
+                <TabsTrigger value="reverse" className="px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">Reverse Engineer</TabsTrigger>
+                <TabsTrigger value="paste-studio" className="px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">Paste Studio</TabsTrigger>
+                <TabsTrigger value="database" className="px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground animate-smooth">Database</TabsTrigger>
               </>
             )}
           </TabsList>
@@ -522,9 +530,12 @@ const FlavourEngine = () => {
 
               {/* Mobile-specific help section */}
               {isMobile && (
-                <Card className="mt-4 bg-info-light border-info/20">
+                <Card className="mt-4 gradient-accent border border-accent/20 shadow-sm">
                   <CardContent className="p-3">
-                    <h3 className="font-semibold text-sm mb-2 text-info-foreground">Mobile AI Engine Tips:</h3>
+                    <h3 className="font-semibold text-sm mb-2 text-accent-foreground flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Mobile AI Engine Tips:
+                    </h3>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p>• 🎯 Swipe between analysis sections for detailed insights</p>
                       <p>• 🤖 AI optimization works in real-time across all parameters</p>

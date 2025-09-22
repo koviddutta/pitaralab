@@ -51,14 +51,17 @@
     /* Beautiful gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(320 100% 95%));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(var(--accent)));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(var(--card-secondary)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--card-secondary)));
     
     /* Shadows */
     --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.15);
     --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.2);
+    --shadow-card: 0 4px 20px -4px hsl(var(--primary) / 0.1);
     
     /* Animation */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     --sidebar-background: 0 0% 98%;
 
@@ -122,10 +125,12 @@
 
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(320 100% 15%));
-    --gradient-card: linear-gradient(135deg, hsl(222.2 84% 4.9%), hsl(var(--accent)));
+    --gradient-card: linear-gradient(135deg, hsl(222.2 84% 4.9%), hsl(var(--card-secondary)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--card-secondary)));
     
     --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.3);
     --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
+    --shadow-card: 0 4px 20px -4px hsl(var(--primary) / 0.2);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -169,7 +174,32 @@
     box-shadow: var(--shadow-glow);
   }
   
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
   .animate-smooth {
     transition: var(--transition-smooth);
+  }
+  
+  .animate-spring {
+    transition: var(--transition-spring);
+  }
+  
+  /* Enhanced focus styles */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+  
+  /* Mobile touch improvements */
+  @media (hover: none) and (pointer: coarse) {
+    .hover-lift:hover {
+      transform: none;
+    }
+    
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 }

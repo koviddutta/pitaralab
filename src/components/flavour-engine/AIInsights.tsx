@@ -49,17 +49,21 @@ const AIInsights = ({ recipe, metrics }: AIInsightsProps) => {
 
   if (isLoading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full gradient-card border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-purple-600" />
+            <Brain className="h-5 w-5 text-primary" />
             AI Insights
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-gray-600">Analyzing recipe with ML models...</p>
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-muted rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+            </div>
+            <p className="text-muted-foreground mt-4">Analyzing recipe with ML models...</p>
           </div>
         </CardContent>
       </Card>
@@ -68,16 +72,19 @@ const AIInsights = ({ recipe, metrics }: AIInsightsProps) => {
 
   if (!prediction || !flavorProfile) {
     return (
-      <Card className="w-full">
+      <Card className="w-full gradient-card border-muted">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-purple-600" />
+            <Brain className="h-5 w-5 text-primary" />
             AI Insights
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-gray-600">Add ingredients to get AI predictions</p>
+            <div className="mb-4">
+              <Brain className="h-12 w-12 mx-auto text-muted-foreground/50" />
+            </div>
+            <p className="text-muted-foreground">Add ingredients to get AI predictions</p>
           </div>
         </CardContent>
       </Card>
@@ -85,12 +92,12 @@ const AIInsights = ({ recipe, metrics }: AIInsightsProps) => {
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full gradient-card border-primary/20 shadow-elegant">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-purple-600" />
+          <Brain className="h-5 w-5 text-primary" />
           AI Insights
-          <Sparkles className="h-4 w-4 text-yellow-500 animate-pulse" />
+          <Sparkles className="h-4 w-4 text-accent animate-pulse" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -134,12 +141,12 @@ const AIInsights = ({ recipe, metrics }: AIInsightsProps) => {
         {prediction.recommendations.length > 0 && (
           <div className="space-y-2">
             <h4 className="font-semibold flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-600" />
+              <Zap className="h-4 w-4 text-accent" />
               ML Recommendations
             </h4>
             {prediction.recommendations.map((rec, index) => (
-              <div key={index} className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                <p className="text-sm text-blue-800">{rec}</p>
+              <div key={index} className="p-3 bg-info-light rounded-lg border-l-4 border-info animate-smooth">
+                <p className="text-sm text-info-foreground">{rec}</p>
               </div>
             ))}
           </div>

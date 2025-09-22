@@ -106,7 +106,7 @@ const OptimizationEngine: React.FC<OptimizationEngineProps> = ({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Zap className="h-5 w-5 text-yellow-600" />
+          <Zap className="h-5 w-5 text-accent" />
           Auto-Balance Engine
         </CardTitle>
       </CardHeader>
