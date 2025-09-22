@@ -90,18 +90,18 @@ const BaseRecipeSelector = () => {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-800';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800';
-      case 'Hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Easy': return 'bg-success-light text-success-foreground border-success/20';
+      case 'Medium': return 'bg-warning-light text-warning-foreground border-warning/20';
+      case 'Hard': return 'bg-destructive/10 text-destructive border-destructive/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+      <CardHeader className="gradient-accent">
         <CardTitle className="flex items-center gap-2">
-          <ChefHat className="h-5 w-5 text-purple-600" />
+          <ChefHat className="h-5 w-5 text-primary" />
           Base Recipe Library
         </CardTitle>
         <CardDescription>

@@ -344,18 +344,18 @@ const FlavourEngine = () => {
 
   return (
     <Card className="w-full max-w-7xl mx-auto shadow-xl">
-      <CardHeader className="bg-gradient-to-r from-purple-100 via-pink-50 to-indigo-100 border-b">
+      <CardHeader className="gradient-card border-b">
         <CardTitle className={`flex items-center gap-2 md:gap-3 ${isMobile ? 'text-lg' : 'text-2xl'} flex-wrap`}>
-          <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg">
-            <Brain className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-white`} />
+          <div className="p-2 gradient-primary rounded-lg shadow-glow">
+            <Brain className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-primary-foreground`} />
           </div>
           <span className="flex-1">AI Flavour Engine</span>
           <ProfileSwitcher />
-          <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-purple-600 animate-pulse`} />
+          <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary animate-pulse`} />
           {isMobile ? (
-            <Smartphone className="h-4 w-4 text-gray-500" />
+            <Smartphone className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <Monitor className="h-4 w-4 text-gray-500" />
+            <Monitor className="h-4 w-4 text-muted-foreground" />
           )}
           <div className={`px-2 md:px-3 py-1 bg-gradient-to-r from-green-500 to-teal-500 text-white ${isMobile ? 'text-xs' : 'text-sm'} rounded-full`}>
             ML Powered v2.0
@@ -520,10 +520,10 @@ const FlavourEngine = () => {
 
               {/* Mobile-specific help section */}
               {isMobile && (
-                <Card className="mt-4 bg-blue-50">
+                <Card className="mt-4 bg-info-light border-info/20">
                   <CardContent className="p-3">
-                    <h3 className="font-semibold text-sm mb-2">Mobile AI Engine Tips:</h3>
-                    <div className="space-y-1 text-xs text-gray-600">
+                    <h3 className="font-semibold text-sm mb-2 text-info-foreground">Mobile AI Engine Tips:</h3>
+                    <div className="space-y-1 text-xs text-muted-foreground">
                       <p>• 🎯 Swipe between analysis sections for detailed insights</p>
                       <p>• 🤖 AI optimization works in real-time across all parameters</p>
                       <p>• 📊 All ML calculations run continuously in background</p>
@@ -637,7 +637,7 @@ const FlavourEngine = () => {
               <TabsContent value="pairings" className="mt-6 space-y-4">
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold mb-2">AI-Powered Flavor Pairings</h3>
-                  <p className="text-sm text-slate-600 mb-3">
+                  <p className="text-sm text-muted-foreground mb-3">
                     Select an ingredient to explore scientifically-backed flavor combinations with manufacturability scoring.
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -685,9 +685,9 @@ const FlavourEngine = () => {
           {!isMobile && (
             <TabsContent value="analytics" className="mt-6">
               <div className="text-center py-12">
-                <Database className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">Performance Analytics</h3>
-                <p className="text-gray-500">Detailed analytics dashboard coming soon...</p>
+                <Database className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-card-foreground mb-2">Performance Analytics</h3>
+                <p className="text-muted-foreground">Detailed analytics dashboard coming soon...</p>
               </div>
             </TabsContent>
           )}

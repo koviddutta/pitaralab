@@ -1,4 +1,5 @@
 import { getActiveParameters } from '@/services/productParametersService';
+import { Button } from '@/components/ui/button';
 
 type Props = {
   productType: 'ice_cream'|'gelato_white'|'gelato_finished'|'fruit_gelato'|'sorbet';
@@ -8,8 +9,20 @@ type Props = {
 
 function Chip({label, val, r}:{label:string; val:number; r:[number,number]}) {
   const [lo, hi] = r;
-  const status = val < lo ? 'bg-amber-100 text-amber-800' : val>hi ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800';
-  return <div className={`text-xs rounded px-2 py-1 ${status}`} title={`${label} target ${lo}–${hi}`}>{label}: {val.toFixed(1)}</div>;
+  const status = val < lo ? 'bg-warning-light text-warning-foreground border-warning/30' : 
+                 val > hi ? 'bg-destructive/10 text-destructive border-destructive/30' : 
+                           'bg-success-light text-success-foreground border-success/30';
+  const ring = val < lo ? 'hover:ring-warning/20' : 
+               val > hi ? 'hover:ring-destructive/20' : 
+                         'hover:ring-success/20';
+  return (
+    <div 
+      className={`text-xs rounded-lg px-3 py-2 border animate-smooth cursor-help ${status} ${ring} hover:ring-2`} 
+      title={`${label} target ${lo}–${hi}`}
+    >
+      {label}: {val.toFixed(1)}
+    </div>
+  );
 }
 
 export default function TargetPanel({ productType, metrics, onOptimize }: Props) {
@@ -35,11 +48,16 @@ export default function TargetPanel({ productType, metrics, onOptimize }: Props)
         <Chip label="PAC"    val={metrics.pac}        r={band.pac}/>
       </div>
       {onOptimize && (
-        <button onClick={onOptimize} className="mt-2 rounded-lg bg-indigo-600 px-3 py-2 text-white text-sm">
+        <Button 
+          onClick={onOptimize} 
+          variant="gradient" 
+          size="sm" 
+          className="mt-3 shadow-elegant hover:shadow-glow"
+        >
           Auto-balance
-        </button>
+        </Button>
       )}
-      <div className="text-xs opacity-70">PAC (aka AFP): higher → softer at same temp. SP: relative sweetness (sucrose=1.00).</div>
+      <div className="text-xs text-muted-foreground">PAC (aka AFP): higher → softer at same temp. SP: relative sweetness (sucrose=1.00).</div>
     </div>
   );
 }
