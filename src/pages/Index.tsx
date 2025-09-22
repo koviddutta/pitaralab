@@ -1,6 +1,6 @@
 
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RecipeCalculator from "@/components/RecipeCalculator";
 import BaseRecipeSelector from "@/components/BaseRecipeSelector";

@@ -76,7 +76,7 @@ const ProductAnalysis = ({ productType, recipe }: ProductAnalysisProps) => {
           <h4 className="font-semibold text-sm text-gray-700">Calculated Values</h4>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex justify-between">
-              <span>PAC (Anti-freezing Power):</span>
+              <span>PAC (aka AFP):</span>
               <Badge variant="outline">{pacSp.afp.toFixed(2)}</Badge>
             </div>
             <div className="flex justify-between">
