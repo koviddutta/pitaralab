@@ -22,7 +22,7 @@ const AIInsights = ({ recipe, metrics }: AIInsightsProps) => {
       
       setIsLoading(true);
       try {
-        const result = await mlService.predictRecipeSuccess(recipe, metrics);
+        const result = await mlService.predictRecipeSuccess(recipe);
         setPrediction(result);
         setFlavorProfile(result.flavorProfile);
       } catch (error) {

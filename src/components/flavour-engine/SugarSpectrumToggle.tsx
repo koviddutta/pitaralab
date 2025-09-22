@@ -5,7 +5,6 @@ import { Candy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { calculateSugarSpectrum } from '@/lib/calc';
 
 interface SugarSpectrumToggleProps {
   recipe: { [ingredient: string]: number };
@@ -46,7 +45,12 @@ const SugarSpectrumToggle: React.FC<SugarSpectrumToggleProps> = ({
       }
     });
 
-    // Apply 70-10-20 spectrum
+    // Apply 70-10-20 spectrum - stub implementation
+    const calculateSugarSpectrum = (total: number) => ({
+      'Sucrose': total * 0.7,
+      'Dextrose': total * 0.1, 
+      'Glucose DE60': total * 0.2
+    });
     const spectrum = calculateSugarSpectrum(totalSugar);
     Object.entries(spectrum).forEach(([sugarType, amount]) => {
       if (!locks[sugarType]) {
