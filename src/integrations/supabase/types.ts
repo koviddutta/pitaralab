@@ -76,6 +76,45 @@ export type Database = {
           },
         ]
       }
+      ingredient_access_log: {
+        Row: {
+          accessed_at: string | null
+          action: string | null
+          id: string
+          ingredient_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          action?: string | null
+          id?: string
+          ingredient_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          action?: string | null
+          id?: string
+          ingredient_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_access_log_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_access_log_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
           category: string
@@ -167,10 +206,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pairing_feedback_a_id_fkey"
+            columns: ["a_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pairing_feedback_b_id_fkey"
             columns: ["b_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_feedback_b_id_fkey"
+            columns: ["b_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients_public"
             referencedColumns: ["id"]
           },
         ]
@@ -255,7 +308,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ingredients_public: {
+        Row: {
+          category: string | null
+          fat_pct: number | null
+          id: string | null
+          msnf_pct: number | null
+          name: string | null
+          notes: string | null
+          other_solids_pct: number | null
+          pac_coeff: number | null
+          sp_coeff: number | null
+          sugar_split: Json | null
+          sugars_pct: number | null
+          tags: string[] | null
+          water_pct: number | null
+        }
+        Insert: {
+          category?: string | null
+          fat_pct?: number | null
+          id?: string | null
+          msnf_pct?: number | null
+          name?: string | null
+          notes?: string | null
+          other_solids_pct?: number | null
+          pac_coeff?: number | null
+          sp_coeff?: number | null
+          sugar_split?: Json | null
+          sugars_pct?: number | null
+          tags?: string[] | null
+          water_pct?: number | null
+        }
+        Update: {
+          category?: string | null
+          fat_pct?: number | null
+          id?: string | null
+          msnf_pct?: number | null
+          name?: string | null
+          notes?: string | null
+          other_solids_pct?: number | null
+          pac_coeff?: number | null
+          sp_coeff?: number | null
+          sugar_split?: Json | null
+          sugars_pct?: number | null
+          tags?: string[] | null
+          water_pct?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
