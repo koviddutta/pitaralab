@@ -1,6 +1,7 @@
 import { calcMetrics } from '@/lib/calc';
 import { optimizeRecipe, Row, OptimizeTarget } from '@/lib/optimize';
 import { IngredientData } from '@/types/ingredients';
+import { getSeedIngredients } from '@/lib/ingredientLibrary';
 
 export interface RecipeMetrics {
   totalWeight: number;
@@ -78,7 +79,6 @@ export class MLService {
       return calcMetrics(recipe.rows);
     } else {
       // Convert legacy format to new format with proper ingredient matching
-      const { getSeedIngredients } = require('@/lib/ingredientLibrary');
       const availableIngredients = getSeedIngredients();
       
       const rows = Object.entries(recipe as { [key: string]: number }).map(([name, grams]) => {
