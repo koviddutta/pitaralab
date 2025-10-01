@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { Plus, Trash2, Beaker, Package, FileText, Download } from 'lucide-react';
+import { Plus, Trash2, Beaker, Package, FileText, Download, Sparkles, BookOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { pasteAdvisorService } from '@/services/pasteAdvisorService';
 import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import { useToast } from '@/hooks/use-toast';
 import { generateId } from '@/lib/utils';
-import type { PasteFormula, PreservationAdvice, PasteComponent } from '@/types/paste';
+import type { PasteFormula, PreservationAdvice, PasteComponent, ScientificRecipe } from '@/types/paste';
 import type { IngredientData } from '@/types/ingredients';
 
 export default function PasteStudio() {
@@ -35,8 +35,9 @@ export default function PasteStudio() {
   
   const [advice, setAdvice] = useState<PreservationAdvice[] | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<PreservationAdvice | null>(null);
+  const [scientificRecipe, setScientificRecipe] = useState<ScientificRecipe | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Recompute paste composition from components (simple weighted average)
   const composed = useMemo(() => {
     const tot = paste.components.reduce((a, c) => a + c.grams, 0) || 1;
     const w = (k: 'water_pct' | 'sugars_pct' | 'fat_pct' | 'msnf_pct' | 'other_solids_pct') =>
@@ -110,6 +111,42 @@ export default function PasteStudio() {
     }
   }, [library, updateComponent]);
 
+  const generateAIFormulation = useCallback(async (mode: 'standard' | 'ai_discovery') => {
+    if (!paste.name || paste.components.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please add a paste name and at least one component.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const recipe = await pasteAdvisorService.generateScientificFormulation(
+        paste.name,
+        paste.category,
+        mode,
+        paste.components.map(c => c.name).join(', '),
+        `Target batch: ${paste.batch_size_g}g`
+      );
+      setScientificRecipe(recipe);
+      toast({
+        title: "Scientific Recipe Generated",
+        description: `${recipe.paste_name} formulation complete with ${recipe.references.length} citations.`,
+      });
+    } catch (error) {
+      console.error('Formulation error:', error);
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate recipe. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [paste, toast]);
+
   const exportAsIngredient = () => {
     toast({
       title: "Export Feature",
@@ -133,7 +170,7 @@ export default function PasteStudio() {
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Paste Studio</h1>
-            <p className="text-muted-foreground mt-1">Formulate → Preserve → Use authentic Indian flavor pastes</p>
+            <p className="text-muted-foreground mt-1">AI-powered scientific formulation for authentic Indian gelato pastes</p>
           </div>
           <Button onClick={runAdvisor} className="bg-gradient-primary text-primary-foreground shadow-elegant" aria-label="Run AI-powered preservation analysis">
             <Beaker className="h-4 w-4 mr-2" />
@@ -141,9 +178,30 @@ export default function PasteStudio() {
           </Button>
         </header>
 
+        {/* AI Generation Buttons */}
+        <div className="flex gap-3 justify-end">
+          <Button 
+            onClick={() => generateAIFormulation('standard')} 
+            disabled={isGenerating}
+            className="bg-gradient-primary"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            {isGenerating ? 'Generating...' : 'AI Recipe Generator'}
+          </Button>
+          <Button 
+            onClick={() => generateAIFormulation('ai_discovery')} 
+            disabled={isGenerating}
+            variant="outline"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            {isGenerating ? 'Discovering...' : 'AI Discovery Mode'}
+          </Button>
+        </div>
+
         <Tabs defaultValue="formulation" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="formulation">Formulation</TabsTrigger>
+            <TabsTrigger value="scientific">AI Recipe</TabsTrigger>
             <TabsTrigger value="preservation">Preservation</TabsTrigger>
             <TabsTrigger value="sop">SOP</TabsTrigger>
             <TabsTrigger value="export">Export</TabsTrigger>
@@ -348,6 +406,177 @@ export default function PasteStudio() {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="scientific" className="space-y-6">
+            {!scientificRecipe ? (
+              <Card className="p-12 text-center">
+                <Sparkles className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">AI Scientific Recipe Generator</h3>
+                <p className="text-muted-foreground mb-6">
+                  Generate industry-standard recipes with scientific citations, process parameters, and gelato compatibility analysis.
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <Button onClick={() => generateAIFormulation('standard')} disabled={isGenerating}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate Recipe
+                  </Button>
+                  <Button onClick={() => generateAIFormulation('ai_discovery')} disabled={isGenerating} variant="outline">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Discover Novel Pairing
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Recipe Header */}
+                <Card className="p-6 bg-gradient-subtle">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold">{scientificRecipe.paste_name}</h2>
+                      <div className="flex gap-3 mt-2">
+                        <Badge variant="secondary">{scientificRecipe.category}</Badge>
+                        <Badge variant="outline">{scientificRecipe.yield_kg}kg batch</Badge>
+                        <Badge>{(scientificRecipe.ai_confidence * 100).toFixed(0)}% confidence</Badge>
+                      </div>
+                    </div>
+                    {scientificRecipe.novel_pairing?.discovered && (
+                      <Badge className="bg-gradient-primary text-primary-foreground">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Novel Pairing
+                      </Badge>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Composition */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Composition Analysis</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="text-center p-3 bg-card-secondary rounded-lg">
+                      <div className="text-sm text-muted-foreground">Fat</div>
+                      <div className="text-xl font-semibold text-primary">{scientificRecipe.composition.fat_pct.toFixed(1)}%</div>
+                    </div>
+                    <div className="text-center p-3 bg-card-secondary rounded-lg">
+                      <div className="text-sm text-muted-foreground">MSNF</div>
+                      <div className="text-xl font-semibold text-primary">{scientificRecipe.composition.msnf_pct.toFixed(1)}%</div>
+                    </div>
+                    <div className="text-center p-3 bg-card-secondary rounded-lg">
+                      <div className="text-sm text-muted-foreground">Sugars</div>
+                      <div className="text-xl font-semibold text-primary">{scientificRecipe.composition.sugars_pct.toFixed(1)}%</div>
+                    </div>
+                    <div className="text-center p-3 bg-card-secondary rounded-lg">
+                      <div className="text-sm text-muted-foreground">Water</div>
+                      <div className="text-xl font-semibold text-primary">{scientificRecipe.composition.water_pct.toFixed(1)}%</div>
+                    </div>
+                    <div className="text-center p-3 bg-card-secondary rounded-lg">
+                      <div className="text-sm text-muted-foreground">Water Activity</div>
+                      <div className="text-xl font-semibold text-primary">{scientificRecipe.composition.water_activity.toFixed(2)}</div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Ingredients */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Scientific Ingredient Formulation</h3>
+                  <div className="space-y-3">
+                    {scientificRecipe.ingredients.map((ing, i) => (
+                      <div key={i} className="flex items-start gap-4 p-3 bg-card-secondary rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium">{ing.name}</div>
+                          <div className="text-sm text-muted-foreground">{ing.function}</div>
+                          {ing.alternative && (
+                            <div className="text-xs text-muted-foreground mt-1">Alternative: {ing.alternative}</div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">{ing.grams}g</div>
+                          <div className="text-sm text-muted-foreground">{ing.percentage.toFixed(1)}%</div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{ing.reference}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Process */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Process Steps</h3>
+                  <div className="space-y-4">
+                    {scientificRecipe.process.map((step) => (
+                      <div key={step.step} className="flex gap-4">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+                          {step.step}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{step.action}</div>
+                          {(step.temperature || step.time) && (
+                            <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                              {step.temperature && <span>🌡️ {step.temperature}°C</span>}
+                              {step.time && <span>⏱️ {step.time} min</span>}
+                            </div>
+                          )}
+                          {step.critical_control && (
+                            <div className="text-sm text-warning mt-1">⚠️ {step.critical_control}</div>
+                          )}
+                          <div className="text-sm text-muted-foreground mt-2">{step.rationale}</div>
+                          <div className="flex gap-2 mt-1">
+                            {step.references.map((ref, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">{ref}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Gelato Application */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Gelato Application</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-medium mb-2">Dosage Recommendation</h4>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <div>Minimum: {scientificRecipe.gelato_dosage.min_pct}%</div>
+                        <div>Maximum: {scientificRecipe.gelato_dosage.max_pct}%</div>
+                        <div className="font-semibold text-primary">Recommended: {scientificRecipe.gelato_dosage.recommended_pct}%</div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Sensory Prediction</h4>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <div><strong>Mouthfeel:</strong> {scientificRecipe.sensory_prediction.mouthfeel}</div>
+                        <div><strong>Flavor:</strong> {scientificRecipe.sensory_prediction.flavor_profile}</div>
+                        <div><strong>Color:</strong> {scientificRecipe.sensory_prediction.color}</div>
+                        <div><strong>Shelf Life:</strong> {scientificRecipe.sensory_prediction.shelf_life}</div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* References */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Scientific References</h3>
+                  <div className="space-y-3">
+                    {scientificRecipe.references.map((ref) => (
+                      <div key={ref.id} className="p-3 bg-card-secondary rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <Badge variant="outline">{ref.id}</Badge>
+                          <div className="flex-1">
+                            <div className="font-medium">{ref.source}</div>
+                            <div className="text-sm text-muted-foreground">{ref.title}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <strong>Relevance:</strong> {ref.relevance}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="preservation" className="space-y-6">

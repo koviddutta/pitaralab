@@ -1,6 +1,74 @@
-import { PasteFormula, PreservationAdvice } from '@/types/paste';
+import { PasteFormula, PreservationAdvice, ScientificRecipe } from '@/types/paste';
+import { supabase } from '@/integrations/supabase/client';
 
 export class PasteAdvisorService {
+  
+  async generateScientificFormulation(
+    pasteType: string, 
+    category: string,
+    mode: 'standard' | 'ai_discovery',
+    knownIngredients?: string,
+    constraints?: string
+  ): Promise<ScientificRecipe> {
+    const { data, error } = await supabase.functions.invoke('paste-formulator', {
+      body: {
+        pasteType,
+        category,
+        mode,
+        knownIngredients,
+        constraints
+      }
+    });
+
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error);
+    
+    return data.recipe;
+  }
+
+  calculateScientificMetrics(paste: PasteFormula) {
+    const totalSolids = 100 - paste.water_pct;
+    const fat = paste.fat_pct;
+    const msnf = paste.msnf_pct || 0;
+    const sugars = paste.sugars_pct || 0;
+    
+    // Water activity estimation (simplified Norrish equation)
+    const brix = paste.lab?.brix_deg || (sugars * 1.2);
+    const aw = paste.lab?.aw_est || Math.max(0.75, 1 - 0.005 * brix);
+    
+    // Industry benchmarks (MEC3/Pregel standards)
+    const benchmarks = {
+      dairy: { fat: [25, 40], msnf: [12, 18], aw: 0.85 },
+      nut: { fat: [35, 55], msnf: [5, 10], aw: 0.80 },
+      fruit: { fat: [0, 5], msnf: [2, 8], aw: 0.85 },
+      confection: { fat: [10, 25], msnf: [5, 12], aw: 0.75 },
+      spice: { fat: [5, 20], msnf: [3, 8], aw: 0.70 },
+      mixed: { fat: [15, 35], msnf: [8, 15], aw: 0.80 }
+    };
+    
+    const benchmark = benchmarks[paste.category];
+    
+    return {
+      totalSolids,
+      fat,
+      msnf,
+      sugars,
+      aw,
+      benchmark,
+      warnings: [
+        ...(fat < benchmark.fat[0] || fat > benchmark.fat[1] 
+          ? [`Fat content (${fat.toFixed(1)}%) outside industry standard (${benchmark.fat[0]}-${benchmark.fat[1]}%)`] 
+          : []),
+        ...(aw > benchmark.aw 
+          ? [`Water activity (${aw.toFixed(2)}) too high for shelf stability (target <${benchmark.aw})`] 
+          : []),
+        ...(msnf < benchmark.msnf[0] && paste.category === 'dairy'
+          ? [`MSNF (${msnf.toFixed(1)}%) below dairy standard (${benchmark.msnf[0]}-${benchmark.msnf[1]}%)`]
+          : [])
+      ]
+    };
+  }
+  
   advise(paste: PasteFormula, prefs?: { ambientPreferred?: boolean; cleanLabel?: boolean; particulate_mm?: number }): PreservationAdvice[] {
     const pH = paste.lab?.pH;
     const brix = paste.lab?.brix_deg;
