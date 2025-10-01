@@ -71,13 +71,30 @@ export function calcMetrics(
            + (g_suc/total_after_evap_g) * coeff.sucrose.pac  * 100;
     } else {
       const id = (ing.id || '').toLowerCase();
-      const c =
-        coeff[id as keyof typeof coeff] ||
-        (id.includes('dextrose') || id.includes('glucose') ? coeff.dextrose :
-         id.includes('fructose') ? coeff.fructose :
-         id.includes('invert')   ? coeff.invert :
-         id.includes('lactose')  ? coeff.lactose :
-         id.includes('glucose_de60') ? coeff.glucose_de60 : coeff.sucrose);
+      const name = (ing.name || '').toLowerCase();
+      
+      // Try to match by ID first, then by name, then use coefficients from ingredient data if available
+      let c = coeff[id as keyof typeof coeff];
+      
+      if (!c) {
+        // Check ingredient-specific coefficients if available
+        if (ing.sp_coeff !== undefined && ing.pac_coeff !== undefined) {
+          c = { sp: ing.sp_coeff, pac: ing.pac_coeff / 100 }; // pac_coeff is stored as percentage
+        } else if (id.includes('dextrose') || name.includes('dextrose') || id.includes('glucose') || name.includes('glucose')) {
+          c = coeff.dextrose;
+        } else if (id.includes('fructose') || name.includes('fructose')) {
+          c = coeff.fructose;
+        } else if (id.includes('invert') || name.includes('invert')) {
+          c = coeff.invert;
+        } else if (id.includes('lactose') || name.includes('lactose')) {
+          c = coeff.lactose;
+        } else if (id.includes('glucose_de60') || name.includes('glucose syrup')) {
+          c = coeff.glucose_de60;
+        } else {
+          c = coeff.sucrose; // Default fallback
+        }
+      }
+      
       sp  += (sug_g / total_after_evap_g) * c.sp  * 100;
       pac += (sug_g / total_after_evap_g) * c.pac * 100;
     }

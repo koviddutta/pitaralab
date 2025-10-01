@@ -77,15 +77,28 @@ export class MLService {
     if ('rows' in recipe && Array.isArray(recipe.rows)) {
       return calcMetrics(recipe.rows);
     } else {
-      // Convert legacy format to new format - for now just return dummy data
-      const total = Object.values(recipe as { [key: string]: number }).reduce((sum, val) => sum + (val || 0), 0);
-      return {
-        total_g: total,
-        water_g: total * 0.7, sugars_g: total * 0.15, fat_g: total * 0.08, msnf_g: total * 0.05, other_g: total * 0.02,
-        water_pct: 70, sugars_pct: 15, fat_pct: 8, msnf_pct: 5, other_pct: 2,
-        ts_add_g: total * 0.3, ts_mass_g: total * 0.3, ts_add_pct: 30, ts_mass_pct: 30,
-        sp: 18, pac: 25
-      };
+      // Convert legacy format to new format with proper ingredient matching
+      const { getSeedIngredients } = require('@/lib/ingredientLibrary');
+      const availableIngredients = getSeedIngredients();
+      
+      const rows = Object.entries(recipe as { [key: string]: number }).map(([name, grams]) => {
+        // Try to find matching ingredient by name (case-insensitive)
+        const ing = availableIngredients.find((i: IngredientData) => 
+          i.name.toLowerCase() === name.toLowerCase() || 
+          i.id.toLowerCase() === name.toLowerCase().replace(/\s+/g, '_')
+        ) || {
+          id: name.toLowerCase().replace(/\s+/g, '_'),
+          name,
+          category: 'other' as const,
+          water_pct: 88, // Default to milk-like composition
+          fat_pct: 3,
+          sugars_pct: 5,
+          other_solids_pct: 0,
+        };
+        return { ing, grams: grams || 0 };
+      });
+      
+      return calcMetrics(rows);
     }
   }
 
