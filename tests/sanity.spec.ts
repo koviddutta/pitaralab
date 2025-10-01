@@ -217,3 +217,261 @@ describe('Sanity Tests - Prevent Regressions', () => {
     });
   });
 });
+
+describe('Edge Case Tests - Extreme Values', () => {
+  
+  describe('Zero Ingredient Amounts', () => {
+    it('should handle recipes with zero amount ingredients', () => {
+      const milk = getIngredientById('milk_3')!;
+      const sucrose = getIngredientById('sucrose')!;
+      
+      const recipe = [
+        { ing: milk, grams: 1000 },
+        { ing: sucrose, grams: 0 } // Zero amount
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.total_g).toBeCloseTo(1000, 0);
+      expect(metrics.sugars_pct).toBeLessThan(10); // Only lactose from milk
+      expect(isNaN(metrics.sp)).toBe(false);
+      expect(isNaN(metrics.pac)).toBe(false);
+    });
+  });
+  
+  describe('Single Ingredient Recipes', () => {
+    it('should handle single ingredient recipe (milk only)', () => {
+      const milk = getIngredientById('milk_3')!;
+      const recipe = [{ ing: milk, grams: 1000 }];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.total_g).toBeCloseTo(1000, 0);
+      expect(metrics.water_pct).toBeGreaterThan(80);
+      expect(metrics.fat_pct).toBeCloseTo(3, 0.5);
+      expect(isNaN(metrics.sp)).toBe(false);
+      expect(isNaN(metrics.pac)).toBe(false);
+    });
+    
+    it('should handle single ingredient recipe (sugar only)', () => {
+      const sucrose = getIngredientById('sucrose')!;
+      const recipe = [{ ing: sucrose, grams: 100 }];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.total_g).toBeCloseTo(100, 0);
+      expect(metrics.water_pct).toBe(0);
+      expect(metrics.sugars_pct).toBeCloseTo(100, 0);
+      expect(metrics.sp).toBeGreaterThan(0);
+      expect(metrics.pac).toBeGreaterThan(0);
+    });
+  });
+  
+  describe('Very Large Batch Sizes', () => {
+    it('should handle industrial-scale batches (10000g)', () => {
+      const milk = getIngredientById('milk_3')!;
+      const cream = getIngredientById('cream_25')!;
+      const sucrose = getIngredientById('sucrose')!;
+      
+      const recipe = [
+        { ing: milk, grams: 6000 },
+        { ing: cream, grams: 2500 },
+        { ing: sucrose, grams: 1500 }
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.total_g).toBeCloseTo(10000, 0);
+      // Percentages should be consistent regardless of scale
+      expect(metrics.sugars_pct).toBeGreaterThan(10);
+      expect(metrics.sugars_pct).toBeLessThan(20);
+      expect(isNaN(metrics.sp)).toBe(false);
+    });
+  });
+  
+  describe('High Evaporation Scenarios', () => {
+    it('should handle 50% evaporation correctly', () => {
+      const milk = getIngredientById('milk_3')!;
+      const recipe = [{ ing: milk, grams: 1000 }];
+      
+      const metrics = calcMetrics(recipe, { evaporation_pct: 50 });
+      
+      // Water should be halved
+      expect(metrics.water_g).toBeLessThan(milk.water_pct * 10);
+      // Total mass should decrease
+      expect(metrics.total_g).toBeLessThan(1000);
+      expect(metrics.total_g).toBeGreaterThan(0); // But not zero
+      // Concentrates solids
+      expect(metrics.ts_mass_pct).toBeGreaterThan(20);
+    });
+    
+    it('should prevent negative water with 99% evaporation', () => {
+      const milk = getIngredientById('milk_3')!;
+      const recipe = [{ ing: milk, grams: 1000 }];
+      
+      const metrics = calcMetrics(recipe, { evaporation_pct: 99 });
+      
+      expect(metrics.water_g).toBeGreaterThanOrEqual(0);
+      expect(metrics.total_g).toBeGreaterThan(0);
+    });
+  });
+  
+  describe('Multiple Sugar Types', () => {
+    it('should correctly calculate SP/PAC with mixed sugars', () => {
+      const milk = getIngredientById('milk_3')!;
+      const sucrose = getIngredientById('sucrose')!;
+      const dextrose = getIngredientById('dextrose')!;
+      const fructose = getIngredientById('fructose')!;
+      
+      const recipe = [
+        { ing: milk, grams: 800 },
+        { ing: sucrose, grams: 70 },
+        { ing: dextrose, grams: 30 },
+        { ing: fructose, grams: 20 }
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      // Mixed sugars should give intermediate SP/PAC
+      expect(metrics.sp).toBeGreaterThan(10);
+      expect(metrics.sp).toBeLessThan(30);
+      expect(metrics.pac).toBeGreaterThan(20);
+      expect(metrics.pac).toBeLessThan(40);
+      
+      // No NaN
+      expect(isNaN(metrics.sp)).toBe(false);
+      expect(isNaN(metrics.pac)).toBe(false);
+    });
+  });
+  
+  describe('High Fat Recipes', () => {
+    it('should handle ice cream with 20%+ fat', () => {
+      const cream = getIngredientById('heavy_cream')!;
+      const milk = getIngredientById('milk_3')!;
+      const sucrose = getIngredientById('sucrose')!;
+      
+      const recipe = [
+        { ing: cream, grams: 600 },
+        { ing: milk, grams: 200 },
+        { ing: sucrose, grams: 150 }
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.fat_pct).toBeGreaterThan(20);
+      expect(metrics.total_g).toBeCloseTo(950, 0);
+      expect(isNaN(metrics.fat_pct)).toBe(false);
+    });
+  });
+  
+  describe('Sorbet (No Fat)', () => {
+    it('should handle sorbet with zero fat', () => {
+      const mango = getIngredientById('mango_alphonso')!;
+      const sucrose = getIngredientById('sucrose')!;
+      const stabilizer = getIngredientById('stabilizer')!;
+      
+      const recipe = [
+        { ing: mango, grams: 400 },
+        { ing: sucrose, grams: 100 },
+        { ing: stabilizer, grams: 3 }
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.fat_pct).toBeLessThan(1);
+      expect(metrics.sugars_pct).toBeGreaterThan(20);
+      expect(isNaN(metrics.sp)).toBe(false);
+      expect(isNaN(metrics.pac)).toBe(false);
+    });
+  });
+  
+  describe('Ingredient Missing Data', () => {
+    it('should handle ingredient with missing optional fields', () => {
+      const customIng: any = {
+        id: 'custom',
+        name: 'Custom Ingredient',
+        category: 'other',
+        water_pct: 50,
+        fat_pct: 10,
+        // sugars_pct missing
+        // sp_coeff missing
+        // pac_coeff missing
+      };
+      
+      const recipe = [{ ing: customIng, grams: 100 }];
+      
+      expect(() => {
+        const metrics = calcMetrics(recipe);
+        expect(isNaN(metrics.sp)).toBe(false);
+        expect(isNaN(metrics.pac)).toBe(false);
+      }).not.toThrow();
+    });
+  });
+  
+  describe('Precision and Rounding', () => {
+    it('should maintain precision in calculations', () => {
+      const milk = getIngredientById('milk_3')!;
+      const sucrose = getIngredientById('sucrose')!;
+      
+      const recipe = [
+        { ing: milk, grams: 857.3 },
+        { ing: sucrose, grams: 142.7 }
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      expect(metrics.total_g).toBeCloseTo(1000, 1);
+      expect(metrics.sugars_pct).toBeGreaterThan(14);
+      expect(metrics.sugars_pct).toBeLessThan(15);
+    });
+  });
+  
+  describe('Fruit with Complex Sugar Splits', () => {
+    it('should handle passion fruit with high fiber', () => {
+      const passion = getIngredientById('passion_fruit')!;
+      const milk = getIngredientById('milk_3')!;
+      
+      const recipe = [
+        { ing: milk, grams: 700 },
+        { ing: passion, grams: 300 }
+      ];
+      
+      const metrics = calcMetrics(recipe);
+      
+      // Passion fruit has 15% other solids (fiber/seeds)
+      expect(metrics.other_pct).toBeGreaterThan(4);
+      expect(metrics.sugars_pct).toBeGreaterThan(7);
+      expect(isNaN(metrics.pac)).toBe(false);
+    });
+  });
+});
+
+describe('Performance Regression Tests', () => {
+  it('should calculate metrics for large recipes quickly', () => {
+    const ingredients = getSeedIngredients();
+    const recipe = ingredients.slice(0, 10).map(ing => ({ ing, grams: 100 }));
+    
+    const start = performance.now();
+    const metrics = calcMetrics(recipe);
+    const end = performance.now();
+    
+    expect(end - start).toBeLessThan(50); // Should complete in <50ms
+    expect(metrics.total_g).toBeGreaterThan(0);
+  });
+  
+  it('should handle repeated calculations without performance degradation', () => {
+    const milk = getIngredientById('milk_3')!;
+    const recipe = [{ ing: milk, grams: 1000 }];
+    
+    const times: number[] = [];
+    for (let i = 0; i < 100; i++) {
+      const start = performance.now();
+      calcMetrics(recipe);
+      const end = performance.now();
+      times.push(end - start);
+    }
+    
+    const avgTime = times.reduce((a, b) => a + b) / times.length;
+    expect(avgTime).toBeLessThan(10); // Average should be <10ms
+  });
+});
