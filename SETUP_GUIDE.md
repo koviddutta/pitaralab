@@ -28,16 +28,69 @@ That's it! The app should be running with all features enabled.
 
 ## Environment Configuration
 
-**No manual setup required!** 🎉
+### Required Environment Variables
 
-The project uses Lovable Cloud, which automatically configures:
-- ✅ Supabase database connection
-- ✅ Edge function endpoints
-- ✅ AI integration (Google Gemini)
-- ✅ Authentication system
-- ✅ File storage
+The following environment variables are required for the application to function:
 
-The `.env` file is auto-generated and managed by the platform.
+```bash
+VITE_SUPABASE_PROJECT_ID     # Your Supabase project identifier
+VITE_SUPABASE_PUBLISHABLE_KEY # Public API key for client-side operations
+VITE_SUPABASE_URL             # Supabase project URL
+```
+
+### Setup Options
+
+**Option 1: Lovable Cloud (Recommended)**
+- ✅ All environment variables automatically configured
+- ✅ Supabase database connection managed
+- ✅ Edge function endpoints pre-configured
+- ✅ AI integration ready (Google Gemini)
+- ✅ Authentication system enabled
+- ✅ File storage configured
+
+**Option 2: Local Development**
+1. Copy `.env.example` to `.env`
+2. Fill in your Supabase project values
+3. **CRITICAL**: Never commit `.env` to version control
+4. Rotate any keys that were accidentally exposed
+
+### Security Notes
+
+- 🔒 `.env` is git-ignored to prevent credential leaks
+- 🔒 RLS (Row Level Security) enabled on all data tables
+- 🔒 Authentication required for all CRUD operations
+- 🔒 See `.env.example` for required variable structure
+
+### Row Level Security (RLS) Configuration
+
+The database uses PostgreSQL Row Level Security to protect data:
+
+| Table | Read Access | Write Access | Notes |
+|-------|------------|--------------|-------|
+| `recipes` | Authenticated | Authenticated | Proprietary formulations |
+| `batches` | Authenticated | Authenticated | Production data |
+| `pastes` | Authenticated | Authenticated | Paste formulations |
+| `ingredients` | **Public** | Authenticated | Shared ingredient database |
+| `ingredient_access_log` | User's own logs | Auto (trigger) | Audit trail |
+
+**⚠️  Ingredients Table Note**: 
+The `ingredients` table is publicly readable to allow users to browse available ingredients before signup. This includes `cost_per_kg` data. If you need to protect proprietary pricing:
+
+1. **Option A**: Restrict to authenticated users only
+   ```sql
+   -- Remove public read access
+   DROP POLICY "Public users can read non-sensitive ingredient data" ON public.ingredients;
+   ```
+
+2. **Option B**: Create a public view without costs
+   ```sql
+   CREATE VIEW ingredients_public AS 
+   SELECT id, name, category, water_pct, sugars_pct, fat_pct, msnf_pct 
+   FROM ingredients;
+   -- Grant public access only to the view
+   ```
+
+See `SECURITY.md` for detailed security considerations.
 
 ## Project Structure
 
@@ -460,13 +513,32 @@ const throttledGenerate = throttle(generatePaste, 5000);
 
 User-generated content is automatically sanitized by React.
 
+## Database Seeding (Optional)
+
+To populate the database with standard ingredients and sample recipes:
+
+```bash
+# If using Lovable Cloud (automatic)
+# The database is already seeded with essential data
+
+# If using external Supabase or local development
+psql $DATABASE_URL < supabase/seed.sql
+```
+
+The seed file includes:
+- 18+ standard dairy products and sweeteners
+- 7 Indian sweets pastes (gulab jamun, jalebi, rabri, etc.)
+- Common fruits and flavor bases
+- 4 sample recipes demonstrating different product types
+
 ## Next Steps
 
 1. **Explore the Code**: Start with `src/pages/Index.tsx`
 2. **Try the Debugger**: Use `CalculationDebugger` component
-3. **Read the Evaluation**: Check `EVALUATION_REPORT.md`
-4. **Build a Feature**: Add a new calculator or tool
-5. **Deploy**: Push to production when ready
+3. **Seed the Database**: Run `supabase/seed.sql` if needed
+4. **Read the Evaluation**: Check `EVALUATION_REPORT.md`
+5. **Build a Feature**: Add a new calculator or tool
+6. **Deploy**: Push to production when ready
 
 ## Additional Resources
 
