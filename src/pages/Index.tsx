@@ -16,6 +16,7 @@ import EnhancedCalculator from "@/components/EnhancedCalculator";
 import PasteStudio from "@/components/PasteStudio";
 import CopyProtection from "@/components/CopyProtection";
 import WelcomeModal from "@/components/WelcomeModal";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Smartphone, Monitor, LogOut, User as UserIcon } from "lucide-react";
 import { migratePinProfiles } from "@/lib/migratePinProfiles";
@@ -105,10 +106,11 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <CopyProtection />
-      <WelcomeModal />
-      <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+        <CopyProtection />
+        <WelcomeModal />
+        <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
         <div className="flex justify-end mb-4">
           <Card className="inline-flex items-center gap-2 p-2">
             <UserIcon className="h-4 w-4 text-gray-600" />
@@ -234,8 +236,10 @@ const Index = () => {
         )}
       </div>
     </div>
+    </ErrorBoundary>
   );
 };
 
 export default Index;
+
 
