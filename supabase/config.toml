@@ -1,1 +1,4 @@
 project_id = "utxmfkgirzpugutuaocd"
+
+[functions.paste-formulator]
+verify_jwt = false
