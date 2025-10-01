@@ -32,10 +32,22 @@ export function calcMetrics(
   }
 
   // Evaporation reduces water, then percentages use final mass
+  // SAFETY: Ensure evaporation never produces negative or impossible values
   const evap = Math.max(0, Math.min(100, opts.evaporation_pct ?? 0));
-  const water_evap_g = water_g * (1 - evap / 100);
-  const total_after_evap_g = total_g - (water_g - water_evap_g);
+  const water_evap_g = Math.max(0, water_g * (1 - evap / 100)); // SAFETY: never negative
+  const water_loss_g = water_g - water_evap_g;
+  const total_after_evap_g = Math.max(0, total_g - water_loss_g); // SAFETY: never negative
+  
+  // SAFETY: Prevent division by zero
   const pct = (x: number) => total_after_evap_g > 0 ? (x / total_after_evap_g) * 100 : 0;
+  
+  // VALIDATION: Check for physically impossible results
+  if (water_evap_g < 0) {
+    console.warn('⚠️ Evaporation produced negative water content! Check recipe inputs.');
+  }
+  if (total_after_evap_g <= 0) {
+    console.warn('⚠️ Total mass after evaporation is zero or negative! Check evaporation percentage.');
+  }
 
   const ts_add_g  = sugars_g + fat_g + msnf_g + other_g;
   const ts_mass_g = total_after_evap_g - water_evap_g;
@@ -54,7 +66,15 @@ export function calcMetrics(
   for (const { ing, grams } of rows) {
     const g = grams || 0;
     const sug_g = g * (ing.sugars_pct || 0) / 100;
+    
+    // SAFETY: Skip if no sugars or invalid mass
     if (sug_g <= 0 || total_after_evap_g <= 0) continue;
+    
+    // SAFETY: Check for NaN in sugar content
+    if (isNaN(sug_g) || !isFinite(sug_g)) {
+      console.warn(`⚠️ NaN detected in sugar calculation for ${ing.name}. Skipping this ingredient.`);
+      continue;
+    }
 
     if (ing.category === 'fruit' && ing.sugar_split) {
       const s = ing.sugar_split;
@@ -79,7 +99,13 @@ export function calcMetrics(
       if (!c) {
         // Check ingredient-specific coefficients if available
         if (ing.sp_coeff !== undefined && ing.pac_coeff !== undefined) {
-          c = { sp: ing.sp_coeff, pac: ing.pac_coeff / 100 }; // pac_coeff is stored as percentage
+          // SAFETY: Validate coefficients are not NaN
+          if (isNaN(ing.sp_coeff) || isNaN(ing.pac_coeff)) {
+            console.warn(`⚠️ NaN coefficients for ${ing.name}. Using sucrose baseline.`);
+            c = coeff.sucrose;
+          } else {
+            c = { sp: ing.sp_coeff, pac: ing.pac_coeff / 100 }; // pac_coeff is stored as percentage
+          }
         } else if (id.includes('dextrose') || name.includes('dextrose') || id.includes('glucose') || name.includes('glucose')) {
           c = coeff.dextrose;
         } else if (id.includes('fructose') || name.includes('fructose')) {
@@ -95,10 +121,27 @@ export function calcMetrics(
         }
       }
       
-      sp  += (sug_g / total_after_evap_g) * c.sp  * 100;
-      pac += (sug_g / total_after_evap_g) * c.pac * 100;
+      const sp_contribution = (sug_g / total_after_evap_g) * c.sp  * 100;
+      const pac_contribution = (sug_g / total_after_evap_g) * c.pac * 100;
+      
+      // SAFETY: Check for NaN before adding
+      if (!isNaN(sp_contribution) && isFinite(sp_contribution)) {
+        sp += sp_contribution;
+      } else {
+        console.warn(`⚠️ NaN SP contribution from ${ing.name}. Check coefficients.`);
+      }
+      
+      if (!isNaN(pac_contribution) && isFinite(pac_contribution)) {
+        pac += pac_contribution;
+      } else {
+        console.warn(`⚠️ NaN PAC contribution from ${ing.name}. Check coefficients.`);
+      }
     }
   }
+  
+  // FINAL SAFETY: Ensure SP and PAC are valid numbers
+  sp = isNaN(sp) || !isFinite(sp) ? 0 : sp;
+  pac = isNaN(pac) || !isFinite(pac) ? 0 : pac;
 
   return {
     total_g: total_after_evap_g,

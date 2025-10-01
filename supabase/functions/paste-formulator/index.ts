@@ -139,49 +139,130 @@ Provide complete scientific formulation with step-by-step process and full refer
 
     console.log('Calling Lovable AI...');
     
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-      }),
-    });
+    // ENHANCED: Add timeout and retry logic
+    const AI_TIMEOUT_MS = 45000; // 45 seconds
+    const MAX_RETRIES = 2;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        console.log(`AI attempt ${attempt}/${MAX_RETRIES}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+        
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
+          }),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
+        // Handle rate limiting
+        if (aiResponse.status === 429) {
+          console.warn('Rate limited, waiting before retry...');
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
+          continue;
+        }
 
-    const aiData = await aiResponse.json();
-    console.log('AI response received');
-    
-    const content = aiData.choices[0].message.content;
-    
-    // Extract JSON from markdown code blocks if present
-    let jsonContent = content;
-    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonContent = jsonMatch[1];
-    }
-    
-    const recipe = JSON.parse(jsonContent);
-    
-    return new Response(
-      JSON.stringify({ success: true, recipe }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        // Handle payment required
+        if (aiResponse.status === 402) {
+          console.error('Payment required - out of AI credits');
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'AI credits exhausted. Please add credits to your Lovable workspace.',
+              errorType: 'payment_required'
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 402 
+            }
+          );
+        }
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error('AI API error:', aiResponse.status, errorText);
+          throw new Error(`AI API error: ${aiResponse.status} - ${errorText}`);
+        }
+        
+        // Success! Break retry loop
+        lastError = null;
+
+        const aiData = await aiResponse.json();
+        console.log('AI response received successfully');
+        
+        const content = aiData.choices[0].message.content;
+        
+        // Extract JSON from markdown code blocks if present
+        let jsonContent = content;
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          jsonContent = jsonMatch[1];
+        }
+        
+        // ENHANCED: Validate JSON before parsing
+        let recipe;
+        try {
+          recipe = JSON.parse(jsonContent);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+        }
+        
+        // ENHANCED: Validate recipe structure
+        if (!recipe.paste_name || !recipe.ingredients || !recipe.composition) {
+          console.error('Invalid recipe structure:', recipe);
+          throw new Error('AI returned incomplete recipe structure');
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, recipe }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        );
+        
+      } catch (error) {
+        lastError = error;
+        
+        // If it's a timeout, retry
+        if (error.name === 'AbortError') {
+          console.warn(`Timeout on attempt ${attempt}, retrying...`);
+          if (attempt < MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+        }
+        
+        // If it's not the last attempt, retry
+        if (attempt < MAX_RETRIES) {
+          console.warn(`Error on attempt ${attempt}, retrying...`, error.message);
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+        
+        // Last attempt failed, throw
+        throw error;
       }
-    );
+    }
+    
+    // All retries exhausted
+    throw lastError || new Error('All AI retry attempts failed');
 
   } catch (error) {
     console.error('Error in paste-formulator:', error);
