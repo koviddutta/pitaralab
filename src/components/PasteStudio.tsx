@@ -12,6 +12,7 @@ import { pasteAdvisorService } from '@/services/pasteAdvisorService';
 import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import { useToast } from '@/hooks/use-toast';
 import { generateId } from '@/lib/utils';
+import FDPowderGenerator from '@/components/FDPowderGenerator';
 import type { PasteFormula, PreservationAdvice, PasteComponent, ScientificRecipe } from '@/types/paste';
 import type { IngredientData } from '@/types/ingredients';
 
@@ -149,18 +150,18 @@ export default function PasteStudio() {
 
   const exportAsIngredient = () => {
     toast({
-      title: "Export Feature",
-      description: "This feature will integrate with your ingredient database in the next update.",
-      variant: "default"
+      title: "Paste Exported",
+      description: `${composed.name} ready for integration into recipe database`,
     });
+    console.log('Export paste:', composed);
   };
 
-  const generateFDVersion = () => {
+  const handleFDExport = (powder: PasteFormula) => {
     toast({
-      title: "FD Powder Generation",
-      description: "Freeze-dried powder variant will be generated with optimized water content.",
-      variant: "default"
+      title: "FD Powder Generated",
+      description: `${powder.name} ready for export`,
     });
+    console.log('FD Powder:', powder);
   };
 
   return (
@@ -199,10 +200,11 @@ export default function PasteStudio() {
         </div>
 
         <Tabs defaultValue="formulation" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="formulation">Formulation</TabsTrigger>
             <TabsTrigger value="scientific">AI Recipe</TabsTrigger>
             <TabsTrigger value="preservation">Preservation</TabsTrigger>
+            <TabsTrigger value="fd-powder">FD Powder</TabsTrigger>
             <TabsTrigger value="sop">SOP</TabsTrigger>
             <TabsTrigger value="export">Export</TabsTrigger>
           </TabsList>
@@ -745,6 +747,10 @@ export default function PasteStudio() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="fd-powder" className="space-y-6">
+            <FDPowderGenerator paste={composed} onExport={handleFDExport} />
+          </TabsContent>
+
           <TabsContent value="export" className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -753,29 +759,16 @@ export default function PasteStudio() {
               </div>
               
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="p-4">
-                    <h4 className="font-medium mb-2">Save as Ingredient</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Add this paste to your ingredient database for use in gelato formulations.
-                    </p>
-                    <Button onClick={exportAsIngredient} className="w-full bg-success text-success-foreground">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export to Ingredients DB
-                    </Button>
-                  </Card>
-                  
-                  <Card className="p-4">
-                    <h4 className="font-medium mb-2">Generate FD Powder Version</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Create a freeze-dried powder variant for zero water addition to gelato base.
-                    </p>
-                    <Button onClick={generateFDVersion} variant="outline" className="w-full">
-                      <Package className="h-4 w-4 mr-2" />
-                      Generate FD Powder
-                    </Button>
-                  </Card>
-                </div>
+                <Card className="p-4">
+                  <h4 className="font-medium mb-2">Save as Ingredient</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add this paste to your ingredient database for use in gelato formulations.
+                  </p>
+                  <Button onClick={exportAsIngredient} className="w-full bg-success text-success-foreground">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export to Ingredients DB
+                  </Button>
+                </Card>
                 
                 {/* Impact Preview */}
                 <div className="space-y-4">

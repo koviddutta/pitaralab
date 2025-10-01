@@ -8,6 +8,7 @@ import UnitConverter from "@/components/UnitConverter";
 import CostCalculator from "@/components/CostCalculator";
 import FlavourEngine from "@/components/FlavourEngine";
 import MobileRecipeInput from "@/components/MobileRecipeInput";
+import CopyProtection from "@/components/CopyProtection";
 import { Card, CardContent } from "@/components/ui/card";
 import { Smartphone, Monitor } from "lucide-react";
 import { migratePinProfiles } from "@/lib/migratePinProfiles";
@@ -35,6 +36,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      <CopyProtection />
       <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
         <div className="text-center mb-4 md:mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">

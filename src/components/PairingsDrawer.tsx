@@ -71,6 +71,24 @@ export default function PairingsDrawer({
     }
   };
 
+  const previewAddition = (ingredient: IngredientData, percentage: number) => {
+    if (!currentMetrics) return null;
+    
+    const totalMass = currentMetrics.total_g || 1000;
+    const addedGrams = (percentage / 100) * totalMass;
+    
+    // Simplified preview calculation
+    const newTotalGrams = totalMass + addedGrams;
+    const sugarDelta = ((ingredient.sugars_pct || 0) / 100) * addedGrams / newTotalGrams * 100;
+    const fatDelta = (ingredient.fat_pct / 100) * addedGrams / newTotalGrams * 100;
+    
+    const newSugars = (currentMetrics.sugars_pct || 0) + sugarDelta;
+    const newFat = (currentMetrics.fat_pct || 0) + fatDelta;
+    const newTS = (currentMetrics.ts_add_pct || 0) + sugarDelta + fatDelta;
+    
+    return { newSugars, newFat, newTS, addedGrams };
+  };
+
   const getScoreColor = (score: number) => {
     if (score > 0.7) return 'bg-emerald-100 text-emerald-800';
     if (score > 0.5) return 'bg-amber-100 text-amber-800';
@@ -153,8 +171,10 @@ export default function PairingsDrawer({
                       const ingredient = availableIngredients.find(ing => ing.id === pairing.idB);
                       if (!ingredient) return null;
 
+                      const preview5 = previewAddition(ingredient, 5);
+                      
                       return (
-                        <div key={idx} className="border rounded-lg p-3 space-y-2">
+                        <div key={idx} className="border rounded-lg p-3 space-y-2 hover:border-primary/50 transition-colors">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="font-medium text-sm">{ingredient.name}</div>
@@ -165,12 +185,38 @@ export default function PairingsDrawer({
                             </Badge>
                           </div>
                           
+                          {preview5 && (
+                            <div className="bg-card-secondary/50 rounded p-2 text-xs">
+                              <div className="font-medium mb-1">Preview @ 5% (+{preview5.addedGrams.toFixed(0)}g):</div>
+                              <div className="grid grid-cols-3 gap-1 text-[10px]">
+                                <div>
+                                  <span className="text-muted-foreground">Sugars:</span>
+                                  <span className={`ml-1 font-semibold ${preview5.newSugars > 25 ? 'text-warning' : 'text-success'}`}>
+                                    {preview5.newSugars.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Fat:</span>
+                                  <span className={`ml-1 font-semibold ${preview5.newFat > 18 ? 'text-warning' : 'text-success'}`}>
+                                    {preview5.newFat.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">TS:</span>
+                                  <span className={`ml-1 font-semibold ${preview5.newTS > 42 ? 'text-warning' : 'text-success'}`}>
+                                    {preview5.newTS.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleAddSuggestion(pairing, 3)}
-                              className="text-xs"
+                              className="text-xs flex-1"
                             >
                               Add 3%
                             </Button>
@@ -178,7 +224,7 @@ export default function PairingsDrawer({
                               size="sm"
                               variant="outline"
                               onClick={() => handleAddSuggestion(pairing, 5)}
-                              className="text-xs"
+                              className="text-xs flex-1"
                             >
                               Add 5%
                             </Button>
@@ -186,9 +232,9 @@ export default function PairingsDrawer({
                               size="sm"
                               variant="outline"
                               onClick={() => handleAddSuggestion(pairing, 8)}
-                              className="text-xs"
+                              className="text-xs flex-1"
                             >
-                              Paste Mode
+                              8% Paste
                             </Button>
                           </div>
                         </div>

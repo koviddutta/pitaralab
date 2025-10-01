@@ -26,8 +26,10 @@ import BatchQA from './BatchQA';
 import PairingsDrawer from './PairingsDrawer';
 import TemperaturePanel from './TemperaturePanel';
 import MachineSelector from './MachineSelector';
+import CostYieldDisplay from './CostYieldDisplay';
+import WhyPanel from './WhyPanel';
 import { IngredientData } from '@/types/ingredients';
-import { calcMetrics } from '@/lib/calc';
+import { calcMetrics, Metrics } from '@/lib/calc';
 import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import UnitConverterAdvanced from './flavour-engine/UnitConverterAdvanced';
 import SugarSpectrumToggle from './flavour-engine/SugarSpectrumToggle';
@@ -44,6 +46,8 @@ const FlavourEngine = () => {
   const [availableIngredients, setAvailableIngredients] = useState<IngredientData[]>([]);
   const [selectedIngredientForPairing, setSelectedIngredientForPairing] = useState<IngredientData | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<'batch' | 'continuous'>('batch');
+  const [previousMetrics, setPreviousMetrics] = useState<Metrics | undefined>(undefined);
+  const [recentChanges, setRecentChanges] = useState<string[]>([]);
   const [recipe, setRecipe] = useState<{[key: string]: number}>({
     'Heavy Cream': 500,
     'Whole Milk': 250,
@@ -191,10 +195,18 @@ const FlavourEngine = () => {
   const allTargetsMet = Object.values(targetResults).every(result => result);
 
   const updateRecipe = (ingredient: string, value: string) => {
+    // Store previous metrics before change
+    if (!previousMetrics) {
+      setPreviousMetrics(modernMetrics);
+    }
+    
     setRecipe(prev => ({
       ...prev,
       [ingredient]: Number(value) || 0
     }));
+    
+    // Track change
+    setRecentChanges(prev => [...prev.slice(-4), `Changed ${ingredient} to ${value}g`]);
   };
 
   const suggestions = generateOptimizationSuggestions(targetResults, metrics, targets, recipe, updateRecipe);
@@ -525,6 +537,21 @@ const FlavourEngine = () => {
                 <IngredientAnalyzer 
                   availableIngredients={ingredients.map(ing => ing.name)}
                   onAddIngredient={addIngredientToRecipe}
+                />
+              </div>
+
+              {/* Cost & Yield + Why Panel */}
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-4 md:gap-6 ${isMobile ? 'mt-4' : 'mt-6'}`}>
+                <CostYieldDisplay 
+                  recipe={recipe} 
+                  metrics={modernMetrics}
+                  overrunPct={selectedMachine === 'batch' ? 50 : 80}
+                  wastePct={5}
+                />
+                <WhyPanel 
+                  metrics={modernMetrics}
+                  previousMetrics={previousMetrics}
+                  changes={recentChanges}
                 />
               </div>
 

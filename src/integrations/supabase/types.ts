@@ -14,7 +14,245 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      batches: {
+        Row: {
+          age_hours: number | null
+          brix: number | null
+          cabinet_temp_c: number | null
+          created_at: string | null
+          draw_temp_c: number | null
+          hardness_score: number | null
+          id: string
+          machine: string | null
+          meltdown_min: number | null
+          notes: string | null
+          overrun_pct: number | null
+          panel_score: number | null
+          ph: number | null
+          recipe_id: string | null
+          scoop_temp_c: number | null
+        }
+        Insert: {
+          age_hours?: number | null
+          brix?: number | null
+          cabinet_temp_c?: number | null
+          created_at?: string | null
+          draw_temp_c?: number | null
+          hardness_score?: number | null
+          id?: string
+          machine?: string | null
+          meltdown_min?: number | null
+          notes?: string | null
+          overrun_pct?: number | null
+          panel_score?: number | null
+          ph?: number | null
+          recipe_id?: string | null
+          scoop_temp_c?: number | null
+        }
+        Update: {
+          age_hours?: number | null
+          brix?: number | null
+          cabinet_temp_c?: number | null
+          created_at?: string | null
+          draw_temp_c?: number | null
+          hardness_score?: number | null
+          id?: string
+          machine?: string | null
+          meltdown_min?: number | null
+          notes?: string | null
+          overrun_pct?: number | null
+          panel_score?: number | null
+          ph?: number | null
+          recipe_id?: string | null
+          scoop_temp_c?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batches_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredients: {
+        Row: {
+          category: string
+          cost_per_kg: number | null
+          created_at: string | null
+          fat_pct: number | null
+          id: string
+          msnf_pct: number | null
+          name: string
+          notes: string | null
+          other_solids_pct: number | null
+          pac_coeff: number | null
+          sp_coeff: number | null
+          sugar_split: Json | null
+          sugars_pct: number | null
+          tags: string[] | null
+          updated_at: string | null
+          water_pct: number | null
+        }
+        Insert: {
+          category: string
+          cost_per_kg?: number | null
+          created_at?: string | null
+          fat_pct?: number | null
+          id?: string
+          msnf_pct?: number | null
+          name: string
+          notes?: string | null
+          other_solids_pct?: number | null
+          pac_coeff?: number | null
+          sp_coeff?: number | null
+          sugar_split?: Json | null
+          sugars_pct?: number | null
+          tags?: string[] | null
+          updated_at?: string | null
+          water_pct?: number | null
+        }
+        Update: {
+          category?: string
+          cost_per_kg?: number | null
+          created_at?: string | null
+          fat_pct?: number | null
+          id?: string
+          msnf_pct?: number | null
+          name?: string
+          notes?: string | null
+          other_solids_pct?: number | null
+          pac_coeff?: number | null
+          sp_coeff?: number | null
+          sugar_split?: Json | null
+          sugars_pct?: number | null
+          tags?: string[] | null
+          updated_at?: string | null
+          water_pct?: number | null
+        }
+        Relationships: []
+      }
+      pairing_feedback: {
+        Row: {
+          a_id: string | null
+          b_id: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          rating: number | null
+        }
+        Insert: {
+          a_id?: string | null
+          b_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+        }
+        Update: {
+          a_id?: string | null
+          b_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairing_feedback_a_id_fkey"
+            columns: ["a_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_feedback_b_id_fkey"
+            columns: ["b_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pastes: {
+        Row: {
+          category: string
+          comp_cached: Json | null
+          components_json: Json
+          cost_per_kg: number | null
+          created_at: string | null
+          id: string
+          lab_json: Json | null
+          name: string
+          preservation_json: Json | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          comp_cached?: Json | null
+          components_json: Json
+          cost_per_kg?: number | null
+          created_at?: string | null
+          id?: string
+          lab_json?: Json | null
+          name: string
+          preservation_json?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          comp_cached?: Json | null
+          components_json?: Json
+          cost_per_kg?: number | null
+          created_at?: string | null
+          id?: string
+          lab_json?: Json | null
+          name?: string
+          preservation_json?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          created_at: string | null
+          id: string
+          metrics: Json | null
+          name: string
+          product_type: string | null
+          profile_id: string | null
+          profile_version: string | null
+          rows_json: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metrics?: Json | null
+          name: string
+          product_type?: string | null
+          profile_id?: string | null
+          profile_version?: string | null
+          rows_json: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metrics?: Json | null
+          name?: string
+          product_type?: string | null
+          profile_id?: string | null
+          profile_version?: string | null
+          rows_json?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
