@@ -12,6 +12,7 @@ import UnitConverter from "@/components/UnitConverter";
 import CostCalculator from "@/components/CostCalculator";
 import FlavourEngine from "@/components/FlavourEngine";
 import MobileRecipeInput from "@/components/MobileRecipeInput";
+import EnhancedCalculator from "@/components/EnhancedCalculator";
 import CopyProtection from "@/components/CopyProtection";
 import WelcomeModal from "@/components/WelcomeModal";
 import { Card, CardContent } from "@/components/ui/card";
@@ -149,9 +150,12 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="calculator" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'} ${isMobile ? 'text-xs' : ''}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} ${isMobile ? 'text-xs' : ''}`}>
             <TabsTrigger value="calculator" className={isMobile ? 'px-1' : ''}>
               {isMobile ? 'Calculator' : 'Recipe Calculator'}
+            </TabsTrigger>
+            <TabsTrigger value="enhanced" className={isMobile ? 'hidden' : ''}>
+              Enhanced 🆕
             </TabsTrigger>
             <TabsTrigger value="flavour-engine" className={isMobile ? 'px-1' : ''}>
               {isMobile ? 'AI Engine' : 'AI Flavour Engine'}
@@ -172,6 +176,10 @@ const Index = () => {
 
           <TabsContent value="calculator" className="mt-4 md:mt-6">
             <RecipeCalculator />
+          </TabsContent>
+
+          <TabsContent value="enhanced" className="mt-4 md:mt-6">
+            <EnhancedCalculator />
           </TabsContent>
 
           <TabsContent value="flavour-engine" className="mt-4 md:mt-6">
