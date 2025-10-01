@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { pasteType, category, mode, knownIngredients, constraints } = await req.json();
+    const { pasteType, category, mode, knownIngredients, constraints, targets } = await req.json();
     
-    console.log('Formulation request:', { pasteType, category, mode });
+    console.log('Formulation request:', { pasteType, category, mode, targets });
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
@@ -117,11 +117,38 @@ Base the discovery on:
 4. MEC3/Pregel/Babbi benchmarking data
 
 Provide full scientific recipe with citations.`;
+    } else if (mode === 'reverse_engineer') {
+      userPrompt = `REVERSE ENGINEERING MODE: Given these target parameters, propose 2-3 candidate paste formulations.
+
+TARGETS:
+${targets?.sp ? `- Sweetness Power (SP): ${targets.sp}` : ''}
+${targets?.afp ? `- Anti-Freezing Power (AFP): ${targets.afp}` : ''}
+${targets?.total_solids ? `- Total Solids: ${targets.total_solids}%` : ''}
+${targets?.fat_pct ? `- Fat: ${targets.fat_pct}%` : ''}
+${targets?.viscosity ? `- Texture: ${targets.viscosity}` : ''}
+
+ALLOWED INGREDIENTS: ${knownIngredients || 'Any food-grade ingredients'}
+${constraints ? `CONSTRAINTS: ${constraints}` : ''}
+
+Provide 2-3 formulations ranked by:
+1. "Closest Fit" - mathematically closest to targets
+2. "Lower Cost" - economical alternative with acceptable deltas
+3. "Clean Label" - minimal ingredients, consumer-friendly
+
+For each formulation:
+- Complete ingredient list with grams and percentages
+- Calculated SP, AFP, composition values
+- Delta analysis vs targets (±0.5 acceptable)
+- Process steps (kadai-friendly, no lab equipment)
+- Cost estimate if possible
+
+Use industry ingredients (MEC3, Pregel standards) and cite all claims.`;
     } else {
       userPrompt = `Formulate a scientific recipe for ${pasteType} paste (${category} category) for gelato infusion.
 
 ${knownIngredients ? `Known/preferred ingredients: ${knownIngredients}` : ''}
 ${constraints ? `Constraints: ${constraints}` : ''}
+${targets?.viscosity ? `Target texture: ${targets.viscosity}` : ''}
 
 Requirements:
 - Industry-standard composition (reference MEC3/Pregel/Babbi)
@@ -131,8 +158,10 @@ Requirements:
 - Particle size < 30 microns for nuts
 - pH ${category === 'fruit' ? '< 4.6' : '> 4.6'}
 - Optimized for 8-12% gelato inclusion
-- Full process with temperatures and times
+- Full process with temperatures and times (kadai-friendly, no specialized lab equipment)
 - All claims cited with references
+
+${targets?.viscosity === 'spreadable' ? '- Nutella-like spreadability: 50-60 viscosity index, use glucose/dextrose to prevent crystallization' : ''}
 
 Provide complete scientific formulation with step-by-step process and full reference list.`;
     }

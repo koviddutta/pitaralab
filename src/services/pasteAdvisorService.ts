@@ -6,9 +6,16 @@ export class PasteAdvisorService {
   async generateScientificFormulation(
     pasteType: string, 
     category: string,
-    mode: 'standard' | 'ai_discovery',
+    mode: 'standard' | 'ai_discovery' | 'reverse_engineer',
     knownIngredients?: string,
-    constraints?: string
+    constraints?: string,
+    targets?: {
+      sp?: number;
+      afp?: number;
+      total_solids?: number;
+      fat_pct?: number;
+      viscosity?: 'spreadable' | 'pourable' | 'thick';
+    }
   ): Promise<ScientificRecipe> {
     const { data, error } = await supabase.functions.invoke('paste-formulator', {
       body: {
@@ -16,7 +23,8 @@ export class PasteAdvisorService {
         category,
         mode,
         knownIngredients,
-        constraints
+        constraints,
+        targets
       }
     });
 
@@ -24,6 +32,57 @@ export class PasteAdvisorService {
     if (!data.success) throw new Error(data.error);
     
     return data.recipe;
+  }
+
+  calculateViscosityProxy(paste: PasteFormula): {
+    viscosity_index: number;
+    texture_prediction: string;
+    spreadability: 'spreadable' | 'pourable' | 'thick';
+    recommendations: string[];
+  } {
+    const totalSolids = 100 - paste.water_pct;
+    const fat = paste.fat_pct;
+    const sugars = paste.sugars_pct || 0;
+    
+    // Viscosity proxy formula (empirical model)
+    // Higher solids, fat, and certain sugars increase viscosity
+    const viscosity_index = 
+      (totalSolids * 0.5) + 
+      (fat * 0.8) + 
+      (sugars * 0.3);
+    
+    let texture_prediction = '';
+    let spreadability: 'spreadable' | 'pourable' | 'thick' = 'spreadable';
+    const recommendations: string[] = [];
+    
+    if (viscosity_index < 40) {
+      texture_prediction = 'Thin, syrup-like consistency';
+      spreadability = 'pourable';
+      recommendations.push('Add fiber (pectin/xanthan 0.2-0.5%) to increase viscosity');
+      recommendations.push('Increase total solids through concentration');
+    } else if (viscosity_index < 60) {
+      texture_prediction = 'Nutella-like spreadable consistency';
+      spreadability = 'spreadable';
+      recommendations.push('Optimal for gelato infusion at 8-12%');
+    } else {
+      texture_prediction = 'Very thick, butter-like consistency';
+      spreadability = 'thick';
+      recommendations.push('May need warming before use');
+      recommendations.push('Consider adding liquid glucose (DE42) to reduce viscosity');
+    }
+    
+    // Anti-crystallization check
+    const glucose_ratio = 0.2; // Would need actual sugar split data
+    if (glucose_ratio < 0.15 && sugars > 40) {
+      recommendations.push('Add dextrose/glucose (10-20% of sugars) to prevent crystallization');
+    }
+    
+    return {
+      viscosity_index,
+      texture_prediction,
+      spreadability,
+      recommendations
+    };
   }
 
   calculateScientificMetrics(paste: PasteFormula) {

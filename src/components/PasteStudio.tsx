@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { Plus, Trash2, Beaker, Package, FileText, Download, Sparkles, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Beaker, Package, FileText, Download, Sparkles, BookOpen, Calculator } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import { getSeedIngredients } from '@/lib/ingredientLibrary';
 import { useToast } from '@/hooks/use-toast';
 import { generateId } from '@/lib/utils';
 import FDPowderGenerator from '@/components/FDPowderGenerator';
+import SpreadabilityControls from '@/components/SpreadabilityControls';
+import ReverseEngineerPaste from '@/components/ReverseEngineerPaste';
 import type { PasteFormula, PreservationAdvice, PasteComponent, ScientificRecipe } from '@/types/paste';
 import type { IngredientData } from '@/types/ingredients';
 
@@ -53,6 +55,11 @@ export default function PasteStudio() {
       other_solids_pct: w('other_solids_pct')
     };
   }, [paste]);
+
+  const viscosityData = useMemo(() => 
+    pasteAdvisorService.calculateViscosityProxy(composed),
+    [composed]
+  );
 
   const runAdvisor = useCallback(() => {
     const newAdvice = pasteAdvisorService.advise(composed, { 
@@ -200,12 +207,13 @@ export default function PasteStudio() {
         </div>
 
         <Tabs defaultValue="formulation" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="formulation">Formulation</TabsTrigger>
+            <TabsTrigger value="viscosity">Spreadability</TabsTrigger>
+            <TabsTrigger value="reverse">Reverse</TabsTrigger>
             <TabsTrigger value="scientific">AI Recipe</TabsTrigger>
             <TabsTrigger value="preservation">Preservation</TabsTrigger>
             <TabsTrigger value="fd-powder">FD Powder</TabsTrigger>
-            <TabsTrigger value="sop">SOP</TabsTrigger>
             <TabsTrigger value="export">Export</TabsTrigger>
           </TabsList>
 
@@ -408,6 +416,15 @@ export default function PasteStudio() {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+
+          <TabsContent value="viscosity" className="space-y-6">
+            <SpreadabilityControls paste={composed} viscosityData={viscosityData} />
+          </TabsContent>
+
+          <TabsContent value="reverse" className="space-y-6">
+            <ReverseEngineerPaste />
           </TabsContent>
 
           <TabsContent value="scientific" className="space-y-6">
