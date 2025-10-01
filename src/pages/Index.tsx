@@ -1,7 +1,11 @@
 
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import RecipeCalculator from "@/components/RecipeCalculator";
 import BaseRecipeSelector from "@/components/BaseRecipeSelector";
 import UnitConverter from "@/components/UnitConverter";
@@ -11,11 +15,40 @@ import MobileRecipeInput from "@/components/MobileRecipeInput";
 import CopyProtection from "@/components/CopyProtection";
 import WelcomeModal from "@/components/WelcomeModal";
 import { Card, CardContent } from "@/components/ui/card";
-import { Smartphone, Monitor } from "lucide-react";
+import { Smartphone, Monitor, LogOut, User as UserIcon } from "lucide-react";
 import { migratePinProfiles } from "@/lib/migratePinProfiles";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [isMobile, setIsMobile] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      // Redirect to auth if not logged in
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     // Initialize migrations
@@ -35,11 +68,61 @@ const Index = () => {
     // Here you could switch to the calculator tab and populate it with the recipe
   };
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Sign out failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      navigate("/auth");
+    }
+  };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to auth if not logged in (additional safety check)
+  if (!session || !user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       <CopyProtection />
       <WelcomeModal />
       <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
+        <div className="flex justify-end mb-4">
+          <Card className="inline-flex items-center gap-2 p-2">
+            <UserIcon className="h-4 w-4 text-gray-600" />
+            <span className="text-sm text-gray-600">{user.email}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-1"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </Card>
+        </div>
+
         <div className="text-center mb-4 md:mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             {isMobile ? (
