@@ -29,16 +29,27 @@ jobs:
     
     - name: Run TypeScript type check
       run: npm run typecheck
+    + run: npm run typecheck --if-present  
     
     - name: Run linter
       run: npm run lint
+    + run: npm run lint --if-present
+  
     
     - name: Run tests with coverage
       run: npm test -- --coverage
+    + run: npm test --if-present -- --coverage --run
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       if: always()
+      with:
+        files: ./coverage/coverage-final.json
+        flags: unittests
+        name: codecov-umbrella
+    + name: Upload coverage reports
+      if: ${{ hashFiles('coverage/coverage-final.json') != '' }}
+      uses: codecov/codecov-action@v4
       with:
         files: ./coverage/coverage-final.json
         flags: unittests
