@@ -29,11 +29,10 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # --- DIAGNOSTIC: list available scripts (helps us see what's wired)
+      # Diagnose what's wired without failing the build
       - name: Show NPM scripts
         run: npm run -s
 
-      # --- OPTIONAL checks (won't fail the build)
       - name: Typecheck (optional)
         run: npm run -s typecheck || echo "typecheck failed (ignored)"
 
@@ -43,11 +42,9 @@ jobs:
       - name: Tests (optional)
         run: npm -s test -- --coverage --run || echo "tests failed (ignored)"
 
-      # --- Build (if present). If missing or fails, print error but don't stop.
       - name: Build (optional)
         run: npm run -s build || echo "build failed (ignored)"
 
-      # Upload coverage only if file exists
       - name: Upload coverage reports
         if: ${{ hashFiles('coverage/coverage-final.json') != '' }}
         uses: codecov/codecov-action@v4
