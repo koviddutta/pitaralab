@@ -14,6 +14,7 @@ import FlavourEngine from "@/components/FlavourEngine";
 import MobileRecipeInput from "@/components/MobileRecipeInput";
 import EnhancedCalculator from "@/components/EnhancedCalculator";
 import PasteStudio from "@/components/PasteStudio";
+import { CostingModule } from "@/components/CostingModule";
 import CopyProtection from "@/components/CopyProtection";
 import WelcomeModal from "@/components/WelcomeModal";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -153,7 +154,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="calculator" className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-7'} ${isMobile ? 'text-xs' : ''}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-8'} ${isMobile ? 'text-xs' : ''}`}>
             <TabsTrigger value="calculator" className={isMobile ? 'px-1' : ''}>
               {isMobile ? 'Calculator' : 'Recipe Calculator'}
             </TabsTrigger>
@@ -162,6 +163,9 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="paste-studio" className={isMobile ? 'hidden' : ''}>
               Paste Studio ✨
+            </TabsTrigger>
+            <TabsTrigger value="costing" className={isMobile ? 'hidden' : ''}>
+              Costing 💰
             </TabsTrigger>
             <TabsTrigger value="flavour-engine" className={isMobile ? 'px-1' : ''}>
               {isMobile ? 'AI Engine' : 'AI Flavour Engine'}
@@ -190,6 +194,19 @@ const Index = () => {
 
           <TabsContent value="paste-studio" className="mt-4 md:mt-6">
             <PasteStudio />
+          </TabsContent>
+
+          <TabsContent value="costing" className="mt-4 md:mt-6">
+            <CostingModule 
+              ingredients={[
+                { name: "Milk", weight: 600, costPerKg: 65 },
+                { name: "Cream", weight: 250, costPerKg: 450 },
+                { name: "Sugar", weight: 180, costPerKg: 50 },
+                { name: "Egg Yolk", weight: 50, costPerKg: 800 },
+                { name: "Vanilla Extract", weight: 5, costPerKg: 12000 },
+              ]}
+              recipeName="Sample Gelato Recipe"
+            />
           </TabsContent>
 
           <TabsContent value="flavour-engine" className="mt-4 md:mt-6">
