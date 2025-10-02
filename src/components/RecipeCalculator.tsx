@@ -320,7 +320,7 @@ const RecipeCalculator = () => {
                   )}
                   <span className="text-xs text-gray-500 w-6">g</span>
                 </div>
-                {amount > 0 && (
+                {amount > 0 && metrics.totalWeight > 0 && (
                   <div className="text-xs text-gray-500">
                     {((amount / metrics.totalWeight) * 100).toFixed(1)}% of total
                   </div>
