@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
-      # use real secrets if set; otherwise use safe placeholders so build won’t crash
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'http://example.invalid' }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://example.com' }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'anon-placeholder' }}
       VITE_ANALYTICS_WRITE_KEY: ${{ secrets.VITE_ANALYTICS_WRITE_KEY || '' }}
     strategy:
@@ -34,12 +33,17 @@ jobs:
     
     - run: npm run typecheck
     + run: npm run typecheck --if-present
+    - run: npm run typecheck --if-present
 
     - run: npm run lint
     + run: npm run lint --if-present
+    - run: npm run lint --if-present
+
 
     - run: npm test -- --coverage
     + run: npm test --if-present -- --coverage --run
+    - run: npm test --if-present -- --coverage --run
+
 
     
     - name: Upload coverage reports
@@ -49,6 +53,7 @@ jobs:
         files: ./coverage/coverage-final.json
         flags: unittests
         name: codecov-umbrella
+
 
     
     - name: Build application

@@ -1,5 +1,16 @@
 // src/lib/calc/index.ts
-import type { IngredientData } from "@/types/ingredients";
+export type IngredientData = {
+  id: string;
+  name: string;
+  water_pct: number;
+  fat_pct: number;
+  sugars_pct: number;
+  msnf_pct: number;
+  other_solids_pct: number;
+  sp_coeff: number;
+  pac_coeff: number;
+  category: string;
+};
 
 /**
  * Each row = one ingredient and how many grams of it are in the batch.
