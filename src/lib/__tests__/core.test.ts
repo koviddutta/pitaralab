@@ -1,16 +1,5 @@
 import { describe, it, expect } from 'vitest';
-type IngredientData = {
-  id: string;
-  name: string;
-  water_pct: number;
-  fat_pct: number;
-  sugars_pct: number;
-  msnf_pct: number;
-  other_solids_pct: number;
-  sp_coeff: number;
-  pac_coeff: number;
-  category: string;
-};
+import { IngredientData } from '@/types/ingredients';
 
 import { calcMetrics } from '../calc';
 
@@ -25,7 +14,7 @@ const createMockIngredient = (overrides: Partial<IngredientData> = {}): Ingredie
   other_solids_pct: 5,
   sp_coeff: 1.0,
   pac_coeff: 1.0,
-  category: 'dairy',
+  category: 'dairy' as const,
   ...overrides,
 });
 

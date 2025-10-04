@@ -155,34 +155,46 @@ const Index = () => {
 
         <Tabs defaultValue="calculator" className="w-full">
           <TabsList className={isMobile 
-            ? "flex w-full overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-hide h-auto flex-nowrap" 
-            : "grid w-full grid-cols-8"
+            ? "w-full h-auto flex flex-nowrap gap-1 overflow-x-auto overflow-y-hidden scrollbar-hide p-2" 
+            : "w-full h-auto flex flex-wrap gap-2 p-2"
           }>
-            <TabsTrigger value="calculator" className={isMobile ? 'text-xs px-3 py-2 flex-shrink-0' : ''}>
-              {isMobile ? '📊 Calculator' : 'Recipe Calculator'}
+            <TabsTrigger 
+              value="calculator" 
+              className={isMobile ? 'text-xs px-3 py-2 flex-shrink-0 min-w-[100px]' : 'flex-1 min-w-[140px]'}
+            >
+              {isMobile ? '📊' : '📊'} Calculator
             </TabsTrigger>
-            <TabsTrigger value="flavour-engine" className={isMobile ? 'text-xs px-3 py-2 flex-shrink-0' : ''}>
-              {isMobile ? '🤖 AI' : 'AI Flavour Engine'}
+            <TabsTrigger 
+              value="flavour-engine" 
+              className={isMobile ? 'text-xs px-3 py-2 flex-shrink-0 min-w-[100px]' : 'flex-1 min-w-[140px]'}
+            >
+              {isMobile ? '🤖' : '🤖'} AI Engine
             </TabsTrigger>
             {isMobile && (
-              <TabsTrigger value="mobile-input" className="text-xs px-3 py-2 flex-shrink-0">
+              <TabsTrigger value="mobile-input" className="text-xs px-3 py-2 flex-shrink-0 min-w-[100px]">
                 ➕ Quick Add
               </TabsTrigger>
             )}
             {!isMobile && (
               <>
-                <TabsTrigger value="enhanced">
-                  Enhanced 🆕
+                <TabsTrigger value="enhanced" className="flex-1 min-w-[140px]">
+                  🆕 Enhanced
                 </TabsTrigger>
-                <TabsTrigger value="paste-studio">
-                  Paste Studio ✨
+                <TabsTrigger value="paste-studio" className="flex-1 min-w-[140px]">
+                  ✨ Paste Studio
                 </TabsTrigger>
-                <TabsTrigger value="costing">
-                  Costing 💰
+                <TabsTrigger value="costing" className="flex-1 min-w-[140px]">
+                  💰 Costing
                 </TabsTrigger>
-                <TabsTrigger value="base-recipes">Base Recipes</TabsTrigger>
-                <TabsTrigger value="converter">Unit Converter</TabsTrigger>
-                <TabsTrigger value="cost">Cost Calculator</TabsTrigger>
+                <TabsTrigger value="base-recipes" className="flex-1 min-w-[140px]">
+                  📚 Base Recipes
+                </TabsTrigger>
+                <TabsTrigger value="converter" className="flex-1 min-w-[140px]">
+                  🔄 Converter
+                </TabsTrigger>
+                <TabsTrigger value="cost" className="flex-1 min-w-[140px]">
+                  💵 Cost Calc
+                </TabsTrigger>
               </>
             )}
           </TabsList>
